@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/queue"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/ratelimit"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/resilience"
+	"github.com/charlesAcmen/livestream-danmaku/v10/internal/webapp"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/ws"
 	"github.com/redis/go-redis/v9"
 )
@@ -32,6 +34,7 @@ func main() {
 	breakerDefaults := resilience.DefaultConfig()
 
 	port := flag.String("port", "8080", "server port")
+	webDir := flag.String("web-dir", getenv("V10_WEB_DIR", ""), "optional directory containing the built web application")
 	workers := flag.Int("workers", ws.DefaultWorkerCount, "number of broadcast workers")
 	redisWorkers := flag.Int("redis-workers", ws.DefaultRedisWorkerCount, "number of isolated Redis publish workers")
 	kafkaEnabled := flag.Bool("kafka", true, "enable Kafka persistence")
@@ -128,6 +131,11 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(buildMetrics(manager, publisher, *kafkaEnabled, *redisEnabled))
 	})
+	if err := registerWebFrontend(mux, *webDir); err != nil {
+		log.Printf("[server] web frontend unavailable dir=%s err=%v", *webDir, err)
+	} else if strings.TrimSpace(*webDir) != "" {
+		log.Printf("[server] web frontend enabled dir=%s", *webDir)
+	}
 
 	server := &http.Server{
 		Addr:              ":" + *port,
@@ -265,4 +273,17 @@ func getenv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func registerWebFrontend(mux *http.ServeMux, webDir string) error {
+	if strings.TrimSpace(webDir) == "" {
+		return nil
+	}
+
+	handler, err := webapp.NewHandler(webDir)
+	if err != nil {
+		return err
+	}
+	mux.Handle("/", handler)
+	return nil
 }
