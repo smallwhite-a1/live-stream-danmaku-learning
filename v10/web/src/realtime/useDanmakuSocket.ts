@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { encodeDanmaku, encodeLike, parseServerPacket } from "../protocol/parser";
 import type { ControlMessage, DanmakuMessage, RoomStats } from "../protocol/types";
@@ -136,7 +136,11 @@ export function useDanmakuSocket(identity: Identity): DanmakuSocketState {
 
   connectRef.current = connect;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    setMessages([]);
+    setStats(EMPTY_STATS);
+    setLastControl(null);
+    setRetryUntil(0);
     connect("connecting");
 
     return () => {

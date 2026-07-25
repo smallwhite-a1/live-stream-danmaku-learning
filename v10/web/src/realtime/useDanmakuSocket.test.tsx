@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -256,6 +257,90 @@ describe("useDanmakuSocket", () => {
 
     expect(oldSocket.closeCalls).toBe(1);
     expect(MockWebSocket.instances).toHaveLength(2);
+    expect(new URL(currentSocket().url).searchParams.get("room")).toBe("room-2");
+  });
+
+  it("clears room and user state when the identity changes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-25T12:00:00Z"));
+    installMockWebSocket();
+
+    const { result, rerender } = renderHook(({ currentIdentity }) => useDanmakuSocket(currentIdentity), {
+      initialProps: { currentIdentity: identity },
+    });
+
+    act(() => {
+      currentSocket().receive(danmakuPacket(1));
+      currentSocket().receive(JSON.stringify({
+        type: 102,
+        room_id: identity.roomId,
+        data: { online: 12, likes: 34 },
+      }));
+      currentSocket().receive(JSON.stringify({
+        type: 104,
+        room_id: identity.roomId,
+        data: { code: "rate_limited", retry_after_millis: 5_000 },
+      }));
+    });
+
+    rerender({
+      currentIdentity: { ...identity, roomId: "room-2", userId: "user-2", username: "Ada" },
+    });
+
+    expect(result.current.messages).toEqual([]);
+    expect(result.current.stats).toEqual({ online: 0, likes: 0 });
+    expect(result.current.lastControl).toBeNull();
+    expect(result.current.retryUntil).toBe(0);
+  });
+
+  it("does not let a queued retry create an extra socket after an identity change", () => {
+    vi.useFakeTimers();
+    installMockWebSocket();
+
+    const { rerender } = renderHook(({ currentIdentity }) => useDanmakuSocket(currentIdentity), {
+      initialProps: { currentIdentity: identity },
+    });
+
+    act(() => {
+      currentSocket().close();
+    });
+
+    rerender({
+      currentIdentity: { ...identity, roomId: "room-2" },
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(new URL(currentSocket().url).searchParams.get("room")).toBe("room-2");
+  });
+
+  it("keeps StrictMode retries and connections scoped to the active lifecycle", () => {
+    vi.useFakeTimers();
+    installMockWebSocket();
+
+    const { rerender } = renderHook(({ currentIdentity }) => useDanmakuSocket(currentIdentity), {
+      initialProps: { currentIdentity: identity },
+      wrapper: StrictMode,
+    });
+
+    const activeSocket = currentSocket();
+    act(() => {
+      activeSocket.close();
+    });
+
+    rerender({
+      currentIdentity: { ...identity, roomId: "room-2" },
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(3);
+    expect(activeSocket.closeCalls).toBe(1);
     expect(new URL(currentSocket().url).searchParams.get("room")).toBe("room-2");
   });
 
