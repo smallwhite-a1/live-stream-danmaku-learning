@@ -75,4 +75,35 @@ describe("resolveIdentity", () => {
       roomId: "room-01",
     });
   });
+
+  it("rejects query identity fields beyond the backend 64-character limit", () => {
+    const storage = createStorage();
+    const oversized = "界".repeat(65);
+
+    const identity = resolveIdentity(
+      `?uid=${oversized}&name=${oversized}&room=${oversized}`,
+      storage,
+    );
+
+    expect(identity).toEqual({
+      userId: expect.stringMatching(/^web-[0-9a-f]{8}$/),
+      username: expect.stringMatching(/^访客-[0-9a-f]{4}$/),
+      roomId: "room-01",
+    });
+  });
+
+  it("does not reuse oversized identity fields from storage", () => {
+    const oversized = "x".repeat(65);
+    const storage = createStorage(JSON.stringify({
+      userId: oversized,
+      username: oversized,
+      roomId: oversized,
+    }));
+
+    const identity = resolveIdentity("", storage);
+
+    expect(identity.userId).toMatch(/^web-[0-9a-f]{8}$/);
+    expect(identity.username).toBe(`访客-${identity.userId.slice(-4)}`);
+    expect(identity.roomId).toBe("room-01");
+  });
 });

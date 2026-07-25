@@ -4,6 +4,7 @@ export type { Identity } from "../realtime/url";
 
 const STORAGE_KEY = "danmaku-lab.identity.v10";
 const DEFAULT_ROOM = "room-01";
+const MAX_IDENTITY_RUNES = 64;
 
 const memoryIdentities = new WeakMap<object, Identity>();
 
@@ -43,9 +44,13 @@ function fallbackName(userId: string): string {
   return `访客-${userId.slice(-4)}`;
 }
 
-function nonBlank(value: string | null | undefined): string | undefined {
+function validIdentityField(value: string | null | undefined): string | undefined {
   const trimmedValue = value?.trim();
-  return trimmedValue ? trimmedValue : undefined;
+  if (!trimmedValue || Array.from(trimmedValue).length > MAX_IDENTITY_RUNES) {
+    return undefined;
+  }
+
+  return trimmedValue;
 }
 
 export function resolveIdentity(
@@ -54,16 +59,16 @@ export function resolveIdentity(
 ): Identity {
   const query = new URLSearchParams(search);
   const storedIdentity = readStoredIdentity(storage);
-  const userId = nonBlank(query.get("uid"))
-    ?? nonBlank(storedIdentity.userId)
+  const userId = validIdentityField(query.get("uid"))
+    ?? validIdentityField(storedIdentity.userId)
     ?? createUserId();
   const identity = {
     userId,
-    username: nonBlank(query.get("name"))
-      ?? nonBlank(storedIdentity.username)
+    username: validIdentityField(query.get("name"))
+      ?? validIdentityField(storedIdentity.username)
       ?? fallbackName(userId),
-    roomId: nonBlank(query.get("room"))
-      ?? nonBlank(storedIdentity.roomId)
+    roomId: validIdentityField(query.get("room"))
+      ?? validIdentityField(storedIdentity.roomId)
       ?? DEFAULT_ROOM,
   };
 

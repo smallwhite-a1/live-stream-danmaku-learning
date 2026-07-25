@@ -16,7 +16,7 @@ const baseSocketState: DanmakuSocketState = {
   messages: [],
   stats: { online: 7, likes: 23 },
   lastControl: null,
-  retryUntil: 0,
+  retryUntil: { danmaku: 0, like: 0 },
   sendDanmaku: vi.fn(() => true),
   sendLike: vi.fn(() => true),
   reconnect: vi.fn(),

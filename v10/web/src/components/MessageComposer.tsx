@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Heart, Send } from "lucide-react";
 
+import type { ActionRetryUntil } from "../realtime/useDanmakuSocket";
+
 interface MessageComposerProps {
-  retryUntil: number;
+  retryUntil: ActionRetryUntil;
   sendDanmaku: (content: string) => boolean;
   sendLike: (count?: number) => boolean;
 }
@@ -15,29 +17,34 @@ export function MessageComposer({
   sendLike,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
-  const [, setRetryRevision] = useState(0);
+  const [retryRevision, refreshRetryState] = useReducer((revision: number) => revision + 1, 0);
   const characterCount = Array.from(content).length;
-  const isRetrying = retryUntil > Date.now();
+  const now = Date.now();
+  const isDanmakuRetrying = retryUntil.danmaku > now;
+  const isLikeRetrying = retryUntil.like > now;
 
   useEffect(() => {
-    const remainingMillis = retryUntil - Date.now();
-    if (remainingMillis <= 0) {
+    const currentTime = Date.now();
+    const nextDeadline = [retryUntil.danmaku, retryUntil.like]
+      .filter((deadline) => deadline > currentTime)
+      .sort((left, right) => left - right)[0];
+    if (nextDeadline === undefined) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      setRetryRevision((revision) => revision + 1);
-    }, remainingMillis);
+      refreshRetryState();
+    }, nextDeadline - currentTime);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [retryUntil]);
+  }, [retryRevision, retryUntil.danmaku, retryUntil.like]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedContent = content.trim();
-    if (!trimmedContent || isRetrying) {
+    if (!trimmedContent || isDanmakuRetrying) {
       return;
     }
 
@@ -67,7 +74,7 @@ export function MessageComposer({
         <button
           aria-label="点赞"
           className="icon-button icon-button--like"
-          disabled={isRetrying}
+          disabled={isLikeRetrying}
           onClick={() => {
             sendLike();
           }}
@@ -79,7 +86,7 @@ export function MessageComposer({
         <button
           aria-label="发送弹幕"
           className="command-button"
-          disabled={isRetrying}
+          disabled={isDanmakuRetrying}
           title="发送弹幕"
           type="submit"
         >

@@ -8,18 +8,24 @@ export type { Identity } from "./url";
 
 export type SocketStatus = "connecting" | "connected" | "reconnecting" | "offline";
 
+export interface ActionRetryUntil {
+  danmaku: number;
+  like: number;
+}
+
 export interface DanmakuSocketState {
   status: SocketStatus;
   messages: DanmakuMessage[];
   stats: RoomStats;
   lastControl: ControlMessage | null;
-  retryUntil: number;
+  retryUntil: ActionRetryUntil;
   sendDanmaku(content: string): boolean;
   sendLike(count?: number): boolean;
   reconnect(): void;
 }
 
 const EMPTY_STATS: RoomStats = { online: 0, likes: 0 };
+const EMPTY_RETRY_UNTIL: ActionRetryUntil = { danmaku: 0, like: 0 };
 const MESSAGE_LIMIT = 300;
 const INITIAL_RETRY_DELAY = 500;
 const MAX_RETRY_DELAY = 10_000;
@@ -30,7 +36,7 @@ export function useDanmakuSocket(identity: Identity): DanmakuSocketState {
   const [messages, setMessages] = useState<DanmakuMessage[]>([]);
   const [stats, setStats] = useState<RoomStats>(EMPTY_STATS);
   const [lastControl, setLastControl] = useState<ControlMessage | null>(null);
-  const [retryUntil, setRetryUntil] = useState(0);
+  const [retryUntil, setRetryUntil] = useState<ActionRetryUntil>(EMPTY_RETRY_UNTIL);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
@@ -115,11 +121,28 @@ export function useDanmakuSocket(identity: Identity): DanmakuSocketState {
           break;
         case "control":
           setLastControl(packet.data);
-          setRetryUntil(
-            packet.data.retry_after_millis === undefined
-              ? 0
-              : Date.now() + packet.data.retry_after_millis,
-          );
+          if (packet.data.retry_after_millis && packet.data.retry_after_millis > 0) {
+            const deadline = Date.now() + packet.data.retry_after_millis;
+            setRetryUntil((currentRetryUntil) => {
+              if (packet.data.action === "danmaku") {
+                return {
+                  ...currentRetryUntil,
+                  danmaku: Math.max(currentRetryUntil.danmaku, deadline),
+                };
+              }
+              if (packet.data.action === "like") {
+                return {
+                  ...currentRetryUntil,
+                  like: Math.max(currentRetryUntil.like, deadline),
+                };
+              }
+
+              return {
+                danmaku: Math.max(currentRetryUntil.danmaku, deadline),
+                like: Math.max(currentRetryUntil.like, deadline),
+              };
+            });
+          }
           break;
       }
     };
@@ -140,7 +163,7 @@ export function useDanmakuSocket(identity: Identity): DanmakuSocketState {
     setMessages([]);
     setStats(EMPTY_STATS);
     setLastControl(null);
-    setRetryUntil(0);
+    setRetryUntil(EMPTY_RETRY_UNTIL);
     connect("connecting");
 
     return () => {

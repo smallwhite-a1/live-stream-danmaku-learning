@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 function renderComposer(
   sendDanmaku = vi.fn(() => true),
-  retryUntil = 0,
+  retryUntil = { danmaku: 0, like: 0 },
   sendLike = vi.fn(() => true),
 ) {
   render(
@@ -72,14 +72,25 @@ describe("MessageComposer", () => {
     expect(controls.content).toHaveValue("keep me");
   });
 
-  it("disables send and like actions during retryUntil", () => {
+  it("disables only danmaku during a danmaku retry window", () => {
     const controls = renderComposer(
       vi.fn(() => true),
-      Date.now() + 5_000,
+      { danmaku: Date.now() + 5_000, like: 0 },
       vi.fn(() => true),
     );
 
     expect(controls.send).toBeDisabled();
+    expect(controls.like).toBeEnabled();
+  });
+
+  it("disables only likes during a like retry window", () => {
+    const controls = renderComposer(
+      vi.fn(() => true),
+      { danmaku: 0, like: Date.now() + 5_000 },
+      vi.fn(() => true),
+    );
+
+    expect(controls.send).toBeEnabled();
     expect(controls.like).toBeDisabled();
   });
 });

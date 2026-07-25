@@ -290,7 +290,7 @@ describe("useDanmakuSocket", () => {
     expect(result.current.messages).toEqual([]);
     expect(result.current.stats).toEqual({ online: 0, likes: 0 });
     expect(result.current.lastControl).toBeNull();
-    expect(result.current.retryUntil).toBe(0);
+    expect(result.current.retryUntil).toEqual({ danmaku: 0, like: 0 });
   });
 
   it("does not let a queued retry create an extra socket after an identity change", () => {
@@ -393,7 +393,7 @@ describe("useDanmakuSocket", () => {
     expect(result.current.status).toBe("connecting");
   });
 
-  it("maps a control retry time to retryUntil", () => {
+  it("maps danmaku and like control windows independently", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-25T12:00:00Z"));
     installMockWebSocket();
@@ -406,15 +406,29 @@ describe("useDanmakuSocket", () => {
         room_id: identity.roomId,
         data: {
           code: "rate_limited",
+          action: "danmaku",
           retry_after_millis: 5_000,
+        },
+      }));
+      currentSocket().receive(JSON.stringify({
+        type: 104,
+        room_id: identity.roomId,
+        data: {
+          code: "rate_limited",
+          action: "like",
+          retry_after_millis: 2_000,
         },
       }));
     });
 
     expect(result.current.lastControl).toEqual({
       code: "rate_limited",
-      retry_after_millis: 5_000,
+      action: "like",
+      retry_after_millis: 2_000,
     });
-    expect(result.current.retryUntil).toBe(Date.now() + 5_000);
+    expect(result.current.retryUntil).toEqual({
+      danmaku: Date.now() + 5_000,
+      like: Date.now() + 2_000,
+    });
   });
 });

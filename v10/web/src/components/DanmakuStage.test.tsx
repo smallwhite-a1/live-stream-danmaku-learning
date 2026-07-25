@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DanmakuMessage } from "../protocol/types";
@@ -90,5 +90,55 @@ describe("DanmakuStage", () => {
       screen.getAllByTestId("active-danmaku")
         .every((item) => Number(item.dataset.lane) <= 3),
     ).toBe(true);
+  });
+
+  it("does not reschedule existing danmaku when the bounded window advances", () => {
+    const { rerender } = render(
+      <DanmakuStage
+        messages={Array.from({ length: 40 }, (_, index) => message(index + 1))}
+        online={2}
+        roomId="room-01"
+      />,
+    );
+    const existing = screen.getByText("Danmaku 2").closest("[data-testid='active-danmaku']");
+    const originalLane = existing?.getAttribute("data-lane");
+    const originalDelay = (existing as HTMLElement | null)?.style.animationDelay;
+    const originalTop = (existing as HTMLElement | null)?.style.top;
+
+    rerender(
+      <DanmakuStage
+        messages={Array.from({ length: 41 }, (_, index) => message(index + 1))}
+        online={2}
+        roomId="room-01"
+      />,
+    );
+
+    const stable = screen.getByText("Danmaku 2").closest("[data-testid='active-danmaku']");
+    expect(stable).toBe(existing);
+    expect(stable).toHaveAttribute("data-lane", originalLane);
+    expect((stable as HTMLElement).style.animationDelay).toBe(originalDelay);
+    expect((stable as HTMLElement).style.top).toBe(originalTop);
+    expect(screen.getByText("Danmaku 41")).toBeInTheDocument();
+  });
+
+  it("removes finished danmaku without replaying it on later updates", () => {
+    const { rerender } = render(
+      <DanmakuStage messages={[message(1)]} online={1} roomId="room-01" />,
+    );
+    const finished = screen.getByText("Danmaku 1").closest("[data-testid='active-danmaku']");
+
+    fireEvent.animationEnd(finished!);
+    expect(screen.queryByText("Danmaku 1")).not.toBeInTheDocument();
+
+    rerender(
+      <DanmakuStage
+        messages={[message(1), message(2)]}
+        online={1}
+        roomId="room-01"
+      />,
+    );
+
+    expect(screen.queryByText("Danmaku 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Danmaku 2")).toBeInTheDocument();
   });
 });
