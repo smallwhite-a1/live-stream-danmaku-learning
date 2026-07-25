@@ -336,6 +336,21 @@ describe("deriveEvents", () => {
     })]);
   });
 
+  it("treats Kafka enablement from disabled as informational", () => {
+    const events = deriveEvents(
+      metrics({ queue: { status: "disabled" } }),
+      metrics({ queue: { status: "healthy" } }),
+      5_000,
+    );
+
+    expect(events).toEqual([expect.objectContaining({
+      code: "kafka_state_changed",
+      level: "info",
+      delta: 1,
+      observedAt: 5_000,
+    })]);
+  });
+
   it("does not generate events when values do not change", () => {
     const current = metrics({
       kafka: { enqueued: 1, acked: 1, dropped: 0, errors: 0, status: "healthy" },

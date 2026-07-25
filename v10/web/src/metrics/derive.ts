@@ -98,7 +98,7 @@ function kafkaLevel(
     return "info";
   }
 
-  return previous === "healthy" ? "info" : "recovery";
+  return previous === "degraded" || previous === "unavailable" ? "recovery" : "info";
 }
 
 export function deriveEvents(
