@@ -19,6 +19,7 @@
 .vscode/
 .idea/
 .superpowers/
+.worktrees/
 *.swp
 *.swo
 
@@ -36,6 +37,10 @@ Thumbs.db
 # --- 测试报告 ---
 coverage.txt
 profile.out
+v10/web/node_modules/
+v10/web/dist/
+v10/web/test-results/
+v10/web/playwright-report/
 
 # --- 如果你以后用到 vendor 模式 ---
 vendor/

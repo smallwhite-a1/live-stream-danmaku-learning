@@ -325,7 +325,9 @@ button:disabled {
 }
 
 .danmaku-stage__overlay {
+  inset: 52px 0 0;
   z-index: 10;
+  height: auto;
   overflow: hidden;
 }
 

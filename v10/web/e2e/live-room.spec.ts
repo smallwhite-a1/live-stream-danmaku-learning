@@ -39,6 +39,16 @@ test("two clients exchange danmaku and likes through the real Go server", async 
 
     await expect(messageItem(a.page, message)).toHaveCount(1);
     await expect(messageItem(b.page, message)).toHaveCount(1);
+    await expect.poll(async () => (
+      a.page.locator(".active-danmaku").filter({ hasText: message }).first().evaluate((element) => {
+        const status = document.querySelector(".danmaku-stage__status");
+        if (!status) {
+          return false;
+        }
+
+        return element.getBoundingClientRect().top >= status.getBoundingClientRect().bottom;
+      })
+    )).toBe(true);
 
     await b.page.getByRole("button", { name: "点赞" }).click();
     await expect(summaryValue(a.page, "点赞")).toHaveText("1");

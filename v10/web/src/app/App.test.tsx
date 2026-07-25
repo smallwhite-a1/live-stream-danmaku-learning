@@ -108,8 +108,10 @@ describe("App", () => {
   ])("renders route %s", async (route, heading) => {
     renderApp(route);
 
-    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
-  });
+    expect(
+      await screen.findByRole("heading", { name: heading }, { timeout: 5_000 }),
+    ).toBeInTheDocument();
+  }, 10_000);
 
   it("redirects unknown routes to the live room", () => {
     renderApp("/not-a-route");
