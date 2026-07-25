@@ -1,11 +1,21 @@
-import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense, useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { X } from "lucide-react";
 
 import { AppHeader } from "../components/AppHeader";
 import { LiveRoomPage } from "../pages/LiveRoomPage";
 import { useDanmakuSocket } from "../realtime/useDanmakuSocket";
 import { resolveIdentity, type Identity } from "./identity";
+
+const MonitorPage = lazy(async () => {
+  const module = await import("../pages/MonitorPage");
+  return { default: module.MonitorPage };
+});
+
+const ChainPage = lazy(async () => {
+  const module = await import("../pages/ChainPage");
+  return { default: module.ChainPage };
+});
 
 export function App() {
   const [identity, setIdentity] = useState<Identity>(() => (
@@ -43,12 +53,24 @@ export function App() {
         status={socket.status}
       />
 
-      <Routes>
-        <Route
-          path="/"
-          element={<LiveRoomPage identity={identity} socket={socket} />}
-        />
-      </Routes>
+      <Suspense
+        fallback={(
+          <main className="route-loading" role="status">
+            <span className="signal-pulse" aria-hidden="true" />
+            正在载入页面
+          </main>
+        )}
+      >
+        <Routes>
+          <Route
+            path="/"
+            element={<LiveRoomPage identity={identity} socket={socket} />}
+          />
+          <Route path="/monitor" element={<MonitorPage />} />
+          <Route path="/chain" element={<ChainPage />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Routes>
+      </Suspense>
 
       {roomSwitcherOpen && (
         <div className="room-switcher-backdrop" role="presentation">

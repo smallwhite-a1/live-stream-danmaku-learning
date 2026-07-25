@@ -3,9 +3,15 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { MetricsState } from "../metrics/useMetrics";
+import { useMetrics } from "../metrics/useMetrics";
 import type { DanmakuSocketState } from "../realtime/useDanmakuSocket";
 import { useDanmakuSocket } from "../realtime/useDanmakuSocket";
 import { App } from "./App";
+
+vi.mock("../metrics/useMetrics", () => ({
+  useMetrics: vi.fn(),
+}));
 
 vi.mock("../realtime/useDanmakuSocket", () => ({
   useDanmakuSocket: vi.fn(),
@@ -22,9 +28,18 @@ const baseSocketState: DanmakuSocketState = {
   reconnect: vi.fn(),
 };
 
-function renderApp(): void {
+const baseMetricsState: MetricsState = {
+  latest: null,
+  samples: [],
+  events: [],
+  freshness: "loading",
+  lastSuccessAt: null,
+  refresh: vi.fn(async () => {}),
+};
+
+function renderApp(initialEntry = "/"): void {
   render(
-    <MemoryRouter initialEntries={["/"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <App />
     </MemoryRouter>,
   );
@@ -43,6 +58,7 @@ beforeEach(() => {
   });
   window.history.replaceState({}, "", "/");
   vi.mocked(useDanmakuSocket).mockReturnValue(baseSocketState);
+  vi.mocked(useMetrics).mockReturnValue(baseMetricsState);
 });
 
 afterEach(cleanup);
@@ -84,5 +100,20 @@ describe("App", () => {
     renderApp();
 
     expect(screen.getByText(feedback)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["/monitor", "运行监控"],
+    ["/chain", "链路说明"],
+  ])("renders route %s", async (route, heading) => {
+    renderApp(route);
+
+    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+  });
+
+  it("redirects unknown routes to the live room", () => {
+    renderApp("/not-a-route");
+
+    expect(screen.getByRole("heading", { name: "实时弹幕" })).toBeInTheDocument();
   });
 });
