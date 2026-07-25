@@ -17,6 +17,7 @@ import {
   redisView,
   type DependencyTone,
   type DependencyView,
+  withDependencyFreshness,
 } from "../components/DependencyStatus";
 import { useMetrics } from "../metrics/useMetrics";
 
@@ -68,25 +69,18 @@ function runtimeView(
   return { detail: healthyDetail, label: "运行中", tone: "healthy" };
 }
 
-function consumerView(queue: DependencyView): DependencyView {
-  if (queue.label === "未启用") {
-    return { detail: "Kafka 未启用时无需启动", label: "未启用", tone: "neutral" };
-  }
-
-  return {
-    detail: "独立进程，当前服务未聚合其健康状态",
-    label: "独立进程",
-    tone: "neutral",
-  };
-}
+const consumerView: DependencyView = {
+  detail: "独立进程，当前服务未聚合其健康状态",
+  label: "当前接口不可观测",
+  tone: "neutral",
+};
 
 export function ChainPage() {
   const metrics = useMetrics();
   const websocket = runtimeView(metrics.freshness, "完成协议校验、身份校验与流量限制");
   const manager = runtimeView(metrics.freshness, "单线程管理房间，工作池执行扇出");
-  const redis = redisView(metrics.latest);
-  const kafka = kafkaView(metrics.latest);
-  const consumer = consumerView(kafka);
+  const redis = withDependencyFreshness(redisView(metrics.latest), metrics.freshness);
+  const kafka = withDependencyFreshness(kafkaView(metrics.latest), metrics.freshness);
 
   return (
     <main className="operations-page chain-page">
@@ -186,14 +180,15 @@ export function ChainPage() {
                 </div>
               </aside>
 
-              <div className="current-consumer-path">
+              <div className="current-consumer-path" data-testid="current-consumer-path">
                 <span className="chain-arrow" aria-hidden="true">↓</span>
                 <ChainNode
-                  detail={consumer.detail}
+                  detail={consumerView.detail}
                   icon={Inbox}
                   name="Consumer"
-                  status={consumer.label}
-                  tone={consumer.tone}
+                  status={consumerView.label}
+                  testId="chain-node-consumer"
+                  tone={consumerView.tone}
                 />
                 <span className="chain-arrow" aria-hidden="true">↓</span>
                 <ChainNode

@@ -88,15 +88,74 @@ describe("ChainPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("never infers the independent Consumer state from Kafka Producer", () => {
+    const current = state();
+    vi.mocked(useMetrics).mockReturnValue({
+      ...current,
+      latest: {
+        ...metrics(),
+        kafka: undefined,
+        queue: { status: "disabled" },
+      },
+    });
+
+    render(<ChainPage />);
+
+    expect(
+      within(screen.getByTestId("chain-node-consumer"))
+        .getByText("当前接口不可观测"),
+    ).toBeInTheDocument();
+  });
+
+  it("marks retained Redis and Kafka state stale instead of healthy", () => {
+    const current = state();
+    vi.mocked(useMetrics).mockReturnValue({
+      ...current,
+      freshness: "stale",
+      latest: {
+        ...metrics(),
+        kafka: {
+          enqueued: 10,
+          acked: 10,
+          dropped: 0,
+          errors: 0,
+          status: "healthy",
+        },
+        queue: { status: "healthy" },
+        redis: { status: "healthy", circuit: "closed" },
+      },
+    });
+
+    render(<ChainPage />);
+
+    expect(
+      within(screen.getByTestId("chain-node-redis")).getByText("数据过期"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("chain-node-kafka")).getByText("数据过期"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("chain-node-redis")).queryByText("正常"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("chain-node-kafka")).queryByText("正常"),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps the future AI consumer outside the realtime branch", () => {
     render(<ChainPage />);
 
     expect(screen.getByText("V11 独立异步消费者")).toBeInTheDocument();
     expect(screen.queryByText("AI 模型调用")).not.toBeInTheDocument();
     const futureBranch = screen.getByTestId("future-ai-branch");
-    const currentConsumer = screen.getByText("Consumer").closest(".chain-node");
+    const realtimeBranch = screen.getByTestId("realtime-branch");
+    const persistenceBranch = screen.getByTestId("persistence-branch");
+    const currentConsumerPath = screen.getByTestId("current-consumer-path");
+    const currentConsumer = screen.getByTestId("chain-node-consumer");
 
-    expect(futureBranch).not.toBe(screen.getByTestId("realtime-branch"));
+    expect(within(realtimeBranch).queryByTestId("future-ai-branch")).toBeNull();
+    expect(within(persistenceBranch).getByTestId("future-ai-branch")).toBe(futureBranch);
+    expect(within(currentConsumerPath).queryByTestId("future-ai-branch")).toBeNull();
     expect(
       futureBranch.compareDocumentPosition(currentConsumer!)
       & Node.DOCUMENT_POSITION_FOLLOWING,

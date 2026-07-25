@@ -132,6 +132,7 @@ describe("MonitorPage", () => {
     expect(screen.getByText("数据已过期")).toBeInTheDocument();
     expect(screen.getByTestId("metric-current-connections")).toHaveTextContent("17");
     expect(screen.getByTestId("metric-delivered-rate")).toHaveTextContent("9.25");
+    expect(screen.getAllByText("数据过期")).toHaveLength(2);
   });
 
   it("renders governance events newest first", () => {
@@ -170,5 +171,38 @@ describe("MonitorPage", () => {
     render(<MonitorPage />);
 
     expect(screen.getByText("正在收集趋势数据")).toBeInTheDocument();
+  });
+
+  it("keeps unknown room counts unknown before the first successful sample", () => {
+    vi.mocked(useMetrics).mockReturnValue(state({
+      latest: null,
+      samples: [],
+      freshness: "stale",
+      lastSuccessAt: null,
+    }));
+
+    render(<MonitorPage />);
+
+    expect(screen.getByTestId("metric-current-connections")).toHaveTextContent("--");
+    expect(screen.getByText("活跃房间未知")).toBeInTheDocument();
+    expect(screen.queryByText("0 个活跃房间")).not.toBeInTheDocument();
+  });
+
+  it("shows slow-client queue drops separately from disconnects", () => {
+    render(<MonitorPage />);
+
+    expect(screen.getByTestId("runtime-dropped-messages")).toHaveTextContent("发送队列丢弃");
+    expect(screen.getByTestId("runtime-dropped-messages")).toHaveTextContent("2");
+    expect(screen.getByText("慢客户端断开")).toBeInTheDocument();
+    expect(screen.getByText("入口丢弃累计")).toBeInTheDocument();
+  });
+
+  it("provides an accessible data table for a rendered trend", () => {
+    render(<MonitorPage />);
+
+    const table = screen.getByRole("table", { name: "最近 60 秒趋势数据" });
+    expect(table).toBeInTheDocument();
+    expect(within(table).getByRole("columnheader", { name: "投递/秒" })).toBeInTheDocument();
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
   });
 });

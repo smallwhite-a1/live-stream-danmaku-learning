@@ -16,6 +16,7 @@ import {
   kafkaView,
   mysqlView,
   redisView,
+  withDependencyFreshness,
 } from "../components/DependencyStatus";
 import { GovernanceEvents } from "../components/GovernanceEvents";
 import { MetricCard } from "../components/MetricCard";
@@ -61,8 +62,8 @@ export function MonitorPage() {
       + traffic.like_rejected_user
       + traffic.like_rejected_room
     : 0;
-  const redis = redisView(latest);
-  const kafka = kafkaView(latest);
+  const redis = withDependencyFreshness(redisView(latest), metrics.freshness);
+  const kafka = withDependencyFreshness(kafkaView(latest), metrics.freshness);
 
   return (
     <main className="operations-page">
@@ -88,7 +89,7 @@ export function MonitorPage() {
 
       <section aria-label="运行摘要" className="metric-grid">
         <MetricCard
-          detail={`${latest?.websocket.rooms ?? 0} 个活跃房间`}
+          detail={latest ? `${latest.websocket.rooms} 个活跃房间` : "活跃房间未知"}
           icon={Users}
           label="当前连接"
           testId="metric-current-connections"
@@ -106,7 +107,7 @@ export function MonitorPage() {
         <MetricCard
           detail="广播入口队列未接收"
           icon={MessageSquareWarning}
-          label="入口丢弃"
+          label="入口丢弃累计"
           testId="metric-ingress-dropped"
           tone={(latest?.websocket.ingress_dropped ?? 0) > 0 ? "warning" : "default"}
           value={String(latest?.websocket.ingress_dropped ?? "--")}
@@ -153,10 +154,10 @@ export function MonitorPage() {
                 <span>内存占用</span>
                 <strong>{latest ? formatBytes(latest.websocket.alloc_bytes) : "--"}</strong>
               </div>
-              <div>
+              <div data-testid="runtime-dropped-messages">
                 <RadioTower aria-hidden="true" size={18} />
-                <span>已投递累计</span>
-                <strong>{latest?.websocket.delivered_messages ?? "--"}</strong>
+                <span>发送队列丢弃</span>
+                <strong>{latest?.websocket.dropped_messages ?? "--"}</strong>
               </div>
               <div>
                 <HardDrive aria-hidden="true" size={18} />

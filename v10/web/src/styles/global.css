@@ -50,6 +50,18 @@ button:disabled {
   opacity: 0.48;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .app-shell {
   min-height: 100vh;
 }

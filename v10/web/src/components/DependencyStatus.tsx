@@ -10,6 +10,21 @@ export interface DependencyView {
   tone: DependencyTone;
 }
 
+export function withDependencyFreshness(
+  view: DependencyView,
+  freshness: "loading" | "fresh" | "stale",
+): DependencyView {
+  if (freshness !== "stale") {
+    return view;
+  }
+
+  return {
+    detail: `上次状态：${view.label}。${view.detail}`,
+    label: "数据过期",
+    tone: "warning",
+  };
+}
+
 interface DependencyStatusProps extends DependencyView {
   icon: LucideIcon;
   name: string;
