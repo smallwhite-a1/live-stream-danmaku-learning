@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light;
+  --surface-app: #f3f5f6;
+  --surface-panel: #ffffff;
+  --surface-subtle: #eef1f2;
+  --surface-stage: #111315;
+  --ink-strong: #16191c;
+  --ink-body: #3d444b;
+  --ink-muted: #737b83;
+  --line: #d9dee1;
+  --line-strong: #bcc4c9;
+  --signal-red: #d8232a;
+  --signal-red-dark: #aa1118;
+  --healthy-green: #16875d;
+  --warning-amber: #b26a00;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-panel: 0 8px 24px rgb(22 25 28 / 10%);
+}
