@@ -26,6 +26,7 @@ export function useMetrics(): MetricsState {
   const latestRef = useRef<ServerMetrics | null>(null);
   const samplesRef = useRef<MetricSample[]>([]);
   const eventsRef = useRef<MetricEvent[]>([]);
+  const sampledAtRef = useRef(0);
   const mountedRef = useRef(true);
   const inFlightRef = useRef<Promise<void> | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
@@ -39,8 +40,13 @@ export function useMetrics(): MetricsState {
     const controller = new AbortController();
     controllerRef.current = controller;
 
-    let request!: Promise<void>;
-    request = (async () => {
+    let resolveRequest!: () => void;
+    const request = new Promise<void>((resolve) => {
+      resolveRequest = resolve;
+    });
+    inFlightRef.current = request;
+
+    void (async () => {
       try {
         const response = await fetch("/metrics", {
           signal: controller.signal,
@@ -54,7 +60,8 @@ export function useMetrics(): MetricsState {
           return;
         }
 
-        const sampledAt = Date.now();
+        const sampledAt = Math.max(Date.now(), sampledAtRef.current + 1);
+        sampledAtRef.current = sampledAt;
         const sample = deriveSample(samplesRef.current.at(-1) ?? null, current, sampledAt);
         const nextEvents = keepNewest(
           [...eventsRef.current, ...deriveEvents(latestRef.current, current, sampledAt)],
@@ -84,10 +91,10 @@ export function useMetrics(): MetricsState {
         if (inFlightRef.current === request) {
           inFlightRef.current = null;
         }
+        resolveRequest();
       }
     })();
 
-    inFlightRef.current = request;
     return request;
   }, []);
 
@@ -104,6 +111,7 @@ export function useMetrics(): MetricsState {
       window.clearInterval(intervalId);
       controllerRef.current?.abort();
       controllerRef.current = null;
+      inFlightRef.current = null;
     };
   }, [refresh]);
 

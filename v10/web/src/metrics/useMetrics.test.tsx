@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -250,5 +251,113 @@ describe("useMetrics", () => {
 
     expect(secondSignal?.aborted).toBe(true);
     await expect(refreshPromise).resolves.toBeUndefined();
+  });
+
+  it("starts a replacement request immediately after StrictMode cleanup aborts the first lifecycle request", async () => {
+    vi.useFakeTimers();
+
+    const first = deferred<{ json(): Promise<ServerMetrics> }>();
+    const second = deferred<{ json(): Promise<ServerMetrics> }>();
+    const signals: AbortSignal[] = [];
+    const fetchMock = vi.fn()
+      .mockImplementationOnce((_: RequestInfo | URL, init?: RequestInit) => {
+        const signal = init?.signal as AbortSignal;
+        signals.push(signal);
+        signal.addEventListener("abort", () => {
+          first.reject(new DOMException("The operation was aborted.", "AbortError"));
+        }, { once: true });
+        return first.promise;
+      })
+      .mockImplementationOnce((_: RequestInfo | URL, init?: RequestInit) => {
+        signals.push(init?.signal as AbortSignal);
+        return second.promise;
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useMetrics(), { wrapper: StrictMode });
+
+    await flushMicrotasks();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(signals[0]?.aborted).toBe(true);
+
+    await act(async () => {
+      second.resolve({
+        json: async () => metrics({
+          websocket: { ...metrics().websocket, delivered_messages: 1 },
+        }),
+      });
+      await Promise.resolve();
+    });
+
+    expect(result.current.freshness).toBe("fresh");
+    expect(result.current.latest?.websocket.delivered_messages).toBe(1);
+  });
+
+  it("keeps sampledAt monotonic so same-millisecond refresh event ids stay unique", async () => {
+    vi.useFakeTimers();
+
+    const now = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    let limited = 0;
+    const fetchMock = vi.fn(() => Promise.resolve({
+      json: async () => metrics({
+        websocket: {
+          ...metrics().websocket,
+          traffic: {
+            ...metrics().websocket.traffic,
+            danmaku_rejected_user: limited,
+          },
+        },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useMetrics());
+    await flushMicrotasks();
+
+    limited = 1;
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    limited = 2;
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.events).toHaveLength(2);
+    expect(result.current.events[0]?.id).not.toBe(result.current.events[1]?.id);
+    expect(result.current.samples[1]?.sampledAt).toBeGreaterThan(result.current.samples[0]?.sampledAt ?? 0);
+    expect(result.current.samples[2]?.sampledAt).toBeGreaterThan(result.current.samples[1]?.sampledAt ?? 0);
+  });
+
+  it("recovers from a synchronous fetch throw on the next refresh", async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => {
+        throw new Error("sync boom");
+      })
+      .mockResolvedValueOnce({
+        json: async () => metrics({
+          websocket: { ...metrics().websocket, delivered_messages: 3 },
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useMetrics());
+    await flushMicrotasks();
+
+    expect(result.current.freshness).toBe("stale");
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.freshness).toBe("fresh");
+    expect(result.current.latest?.websocket.delivered_messages).toBe(3);
   });
 });
