@@ -16,7 +16,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "go run ../cmd/server -port=18080 -redis=false -kafka=false",
+      command: "go run ../cmd/server -port=18080 -redis=false -kafka=false -danmaku-user-rate=0.1 -danmaku-user-burst=10",
       cwd: ".",
       reuseExistingServer: false,
       timeout: 60_000,
