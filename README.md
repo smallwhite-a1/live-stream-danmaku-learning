@@ -1,5 +1,7 @@
 # 🎬 Live-Stream-Danmaku — 高性能直播弹幕后端系统
 
+> **学习复现说明：** 根目录保留 [charlesAcmen/live-stream-danmaku](https://github.com/charlesAcmen/live-stream-danmaku) 的原项目实现、说明和署名；`v1` 到 `v10` 是在其基础上按难度重新拆分的学习版本。本仓库的分支、每阶段目标和对比方法见 [LEARNING_ROADMAP.md](LEARNING_ROADMAP.md)。原 README 中的性能数据来自原作者环境，本机验证结果单独记录在 V10 文档中。
+
 > Bilibili / YouTube 级直播弹幕系统，Go 语言从零搭建，单机支撑 **6万+ 长连接**、**150万 QPS 下行广播**。
 
 <p align="center">
