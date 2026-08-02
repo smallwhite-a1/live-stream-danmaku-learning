@@ -102,6 +102,7 @@ v10/
 │   ├── client/       命令行 WebSocket 客户端
 │   └── benchmark/    后端小规模压测入口
 ├── internal/
+│   ├── auth/        用户登录、HS256 令牌和鉴权中间件
 │   ├── ws/           连接、房间、广播 worker、safeSend
 │   ├── ratelimit/    连接、用户和房间限流
 │   ├── resilience/   Redis 熔断器
@@ -240,6 +241,71 @@ Redis 和 Kafka 都关闭时，`Manager.handleBroadcast` 会直接进入本机�
 ```
 
 服务端广播弹幕时会补齐 `message_id`、房间、用户、昵称和时间。`message_id` 在入口只生成一次，后续 Redis、Kafka 和 MySQL 都沿用它。
+
+Consumer 写 MySQL 前会先按 `message_id` 去除同一批次内的重复记录，再使用 MySQL 唯一索引吸收跨批次重试；原批次中的所有 Kafka 消息仍会在提交成功后统一标记，重复数量进入 `duplicates` 指标。
+
+### 5.2 JWT 登录与用户表
+
+V10 已加入基于 MySQL 的用户表 `v10_users` 和登录服务。密码使用 bcrypt 保存，服务端只签发 HS256 令牌，不在 WebSocket、Kafka 或 MySQL 中传递密码。
+
+首次启动或表结构变化后，先执行迁移并创建本地学习账号：
+
+```bash
+go run ./v10/cmd/migrate \
+  -mysql-dsn='root:root@tcp(127.0.0.1:3313)/danmaku_v10?charset=utf8mb4&parseTime=True&loc=Local' \
+  -seed-username=demo \
+  -seed-password=demo123
+```
+
+启动服务时，`-auth=true` 会打开登录服务；`-auth-required=true` 会要求 WebSocket 和 `/metrics` 携带有效 JWT。默认关闭强制校验，便于继续学习旧版的 `uid/name` 兼容链路：
+
+```bash
+go run ./v10/cmd/server \
+  -auth=true \
+  -auth-required=true \
+  -jwt-secret='请替换为至少32字节的随机字符串'
+```
+
+登录后可以使用返回的令牌访问指标和命令行客户端：
+
+```bash
+TOKEN=$(curl -s \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"demo","password":"demo123"}' \
+  http://127.0.0.1:8080/auth/login \
+  | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/metrics
+go run ./v10/cmd/client -port=8080 -room=room1 -token="$TOKEN"
+```
+
+浏览器登录接口会同时写入 HttpOnly Cookie；命令行客户端和本地 benchmark 使用 `-token`。查询参数令牌只为 CLI 和本地压测保留，正式浏览器场景应使用 Cookie 或 Authorization 请求头。
+
+登录链路可以按下面的顺序阅读：
+
+```mermaid
+sequenceDiagram
+    participant U as 客户端
+    participant A as /auth/login
+    participant S as auth.Service
+    participant R as UserRepo
+    participant DB as v10_users
+    participant W as /ws
+
+    U->>A: username + password
+    A->>R: 按 username 查询
+    R->>DB: SELECT
+    DB-->>R: bcrypt 密文和用户状态
+    R-->>S: User
+    S->>S: bcrypt 校验密码
+    S-->>U: HS256 JWT + HttpOnly Cookie
+    U->>W: Cookie、Bearer 或 CLI token
+    W->>S: 校验签名、issuer、过期时间
+    S-->>W: user_id、username、role
+    W->>W: 用令牌身份覆盖 uid/name
+```
+
+`-auth-required=false` 时，服务仍保留旧版 `uid/name` 兼容入口，适合先学习 WebSocket；`-auth-required=true` 时，缺少或伪造令牌会在升级连接前被拒绝。生产环境还应补充刷新令牌、登出失效名单或短令牌轮换，以及登录接口限流。
 
 ### 6.1 完整消息时序
 
@@ -632,7 +698,7 @@ docker compose -f v10/docker-compose.redis-kafka-mysql.yaml down
 
 ## 13. 测试命令和本机结果
 
-验证日期：2026-07-26。
+基础验证日期：2026-07-26；消息级延迟压测补充于 2026-08-01。
 
 ### 13.1 Go 后端
 
@@ -650,7 +716,19 @@ docker compose -f v10/docker-compose.redis-kafka-mysql.yaml config --quiet
 - `internal` 下的竞态检测通过；
 - `go vet` 通过；
 - Compose 配置解析通过；
-- 没有记录或虚构新的压测数字。
+- 压测数据和口径记录在 [V10 压测实测报告](../docs/benchmark/v10-benchmark-report-2026-08-01.md)；
+- Go benchmark 支持消息级 P50/P95/P99 延迟统计，JMeter 负责连接和采样验证。
+
+消息级延迟压测示例：
+
+```bash
+go run ./v10/cmd/server -port=18088 -redis=false -kafka=false
+go run ./v10/cmd/benchmark \
+  -port=18088 -clients=100 -active=1 \
+  -interval=300ms -duration=10s -room=latency-room
+```
+
+benchmark 会在压测消息中携带发送时间，客户端收到房间广播后计算延迟百分位。该字段仅用于压测观测，通过 `gorm:"-"` 排除在 MySQL 落库之外。
 
 ### 13.2 Web 前端
 

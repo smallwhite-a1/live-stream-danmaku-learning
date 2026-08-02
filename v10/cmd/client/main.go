@@ -20,6 +20,7 @@ func main() {
 	uid := flag.String("uid", "", "user id")
 	name := flag.String("name", "", "username")
 	room := flag.String("room", "room1", "room id")
+	token := flag.String("token", "", "JWT access token; query uid/name are used only without a token")
 	flag.Parse()
 
 	if *uid == "" {
@@ -34,6 +35,9 @@ func main() {
 	q.Set("uid", *uid)
 	q.Set("name", *name)
 	q.Set("room", *room)
+	if *token != "" {
+		q.Set("token", *token)
+	}
 	u.RawQuery = q.Encode()
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)

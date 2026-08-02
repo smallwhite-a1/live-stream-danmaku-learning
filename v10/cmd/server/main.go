@@ -13,9 +13,11 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/charlesAcmen/livestream-danmaku/v10/internal/auth"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/infra"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/queue"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/ratelimit"
+	"github.com/charlesAcmen/livestream-danmaku/v10/internal/repo"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/resilience"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/webapp"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/ws"
@@ -35,6 +37,13 @@ func main() {
 
 	port := flag.String("port", "8080", "server port")
 	webDir := flag.String("web-dir", getenv("V10_WEB_DIR", ""), "optional directory containing the built web application")
+	authEnabled := flag.Bool("auth", false, "enable database-backed JWT login")
+	authRequired := flag.Bool("auth-required", false, "require JWT for WebSocket and metrics requests")
+	mysqlDSN := flag.String("mysql-dsn", getenv("V10_MYSQL_DSN", infra.DefaultMySQLDSN), "MySQL DSN for users")
+	jwtSecret := flag.String("jwt-secret", getenv("V10_JWT_SECRET", "v10-local-development-secret-change-me-32"), "HS256 signing secret")
+	jwtIssuer := flag.String("jwt-issuer", getenv("V10_JWT_ISSUER", "v10"), "JWT issuer")
+	jwtTTL := flag.Duration("jwt-ttl", 15*time.Minute, "JWT access token lifetime")
+	secureCookie := flag.Bool("secure-cookie", false, "set Secure on the JWT cookie")
 	workers := flag.Int("workers", ws.DefaultWorkerCount, "number of broadcast workers")
 	redisWorkers := flag.Int("redis-workers", ws.DefaultRedisWorkerCount, "number of isolated Redis publish workers")
 	kafkaEnabled := flag.Bool("kafka", true, "enable Kafka persistence")
@@ -58,6 +67,39 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	var authService *auth.Service
+	var sqlDB interface{ Close() error }
+	if *authEnabled {
+		dbCtx, cancelDB := context.WithTimeout(ctx, 5*time.Second)
+		db, err := infra.OpenDB(dbCtx, *mysqlDSN)
+		cancelDB()
+		if err != nil {
+			log.Fatalf("[server] init auth database failed: %v", err)
+		}
+		dbConn, err := db.DB()
+		if err != nil {
+			log.Fatalf("[server] get auth database connection failed: %v", err)
+		}
+		sqlDB = dbConn
+		userRepo := repo.NewUserRepo(db)
+		authService, err = auth.New(userRepo, auth.Config{
+			Secret:       *jwtSecret,
+			Issuer:       *jwtIssuer,
+			AccessTTL:    *jwtTTL,
+			CookieName:   "v10_access_token",
+			SecureCookie: *secureCookie,
+		})
+		if err != nil {
+			log.Fatalf("[server] init auth service failed: %v", err)
+		}
+		log.Printf("[server] JWT login enabled issuer=%s ttl=%s", *jwtIssuer, *jwtTTL)
+	} else if *authRequired {
+		log.Fatalf("[server] auth-required needs auth enabled")
+	}
+	if sqlDB != nil {
+		defer sqlDB.Close()
+	}
 
 	var (
 		producer    sarama.AsyncProducer
@@ -122,15 +164,28 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWS(manager, w, r)
+		ws.ServeWSWithAuth(manager, authService, *authRequired, w, r)
 	})
+	if authService != nil {
+		mux.HandleFunc("/auth/login", authService.LoginHandler)
+		mux.HandleFunc("/auth/logout", authService.LogoutHandler)
+	} else {
+		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "authentication disabled", http.StatusNotFound)
+		})
+	}
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok\n"))
 	})
-	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+	metricsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(buildMetrics(manager, publisher, *kafkaEnabled, *redisEnabled))
 	})
+	if authService != nil && *authRequired {
+		mux.Handle("/metrics", authService.Require(metricsHandler))
+	} else {
+		mux.Handle("/metrics", metricsHandler)
+	}
 	if err := registerWebFrontend(mux, *webDir); err != nil {
 		log.Printf("[server] web frontend unavailable dir=%s err=%v", *webDir, err)
 	} else if strings.TrimSpace(*webDir) != "" {
@@ -145,7 +200,7 @@ func main() {
 
 	go func() {
 		log.Printf("[server] V10 listening on :%s workers=%d redis_workers=%d kafka=%v redis=%v", *port, *workers, *redisWorkers, *kafkaEnabled, *redisEnabled)
-		log.Printf("[server] WebSocket endpoint: ws://127.0.0.1:%s/ws?uid=1001&name=alice&room=room1", *port)
+		log.Printf("[server] WebSocket endpoint: ws://127.0.0.1:%s/ws?room=room1&token=<access-token>", *port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("[server] stopped: %v", err)
 		}

@@ -1,0 +1,61 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1785567822387,4,Open WebSocket,101,Switching Protocols,WebSocket clients 1-1,,true,,129,201,1,1,null,0,0,4
+1785567822392,0,Send Danmaku,200,OK,WebSocket clients 1-1,,true,,0,54,1,1,null,0,0,0
+1785567822392,1,Read Broadcast,200,OK,WebSocket clients 1-1,text,true,,262,0,1,1,null,0,0,0
+1785567822487,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-2,,true,,129,201,1,1,null,0,0,1
+1785567822488,0,Send Danmaku,200,OK,WebSocket clients 1-2,,true,,0,54,1,1,null,0,0,0
+1785567822488,0,Read Broadcast,200,OK,WebSocket clients 1-2,text,true,,262,0,1,1,null,0,0,0
+1785567822587,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-3,,true,,129,201,1,1,null,0,0,1
+1785567822589,0,Send Danmaku,200,OK,WebSocket clients 1-3,,true,,0,54,1,1,null,0,0,0
+1785567822589,0,Read Broadcast,200,OK,WebSocket clients 1-3,text,true,,262,0,1,1,null,0,0,0
+1785567822687,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-4,,true,,129,201,1,1,null,0,0,1
+1785567822688,0,Send Danmaku,200,OK,WebSocket clients 1-4,,true,,0,54,1,1,null,0,0,0
+1785567822688,1,Read Broadcast,200,OK,WebSocket clients 1-4,text,true,,262,0,1,1,null,0,0,0
+1785567822787,2,Open WebSocket,101,Switching Protocols,WebSocket clients 1-5,,true,,129,201,1,1,null,0,0,2
+1785567822789,0,Send Danmaku,200,OK,WebSocket clients 1-5,,true,,0,54,1,1,null,0,0,0
+1785567822789,1,Read Broadcast,200,OK,WebSocket clients 1-5,text,true,,262,0,1,1,null,0,0,0
+1785567822887,2,Open WebSocket,101,Switching Protocols,WebSocket clients 1-6,,true,,129,201,1,1,null,0,0,2
+1785567822889,0,Send Danmaku,200,OK,WebSocket clients 1-6,,true,,0,54,1,1,null,0,0,0
+1785567822889,2,Read Broadcast,200,OK,WebSocket clients 1-6,text,true,,262,0,1,1,null,0,0,0
+1785567822988,6,Open WebSocket,101,Switching Protocols,WebSocket clients 1-7,,true,,129,201,1,1,null,0,0,6
+1785567822994,1,Send Danmaku,200,OK,WebSocket clients 1-7,,true,,0,54,1,1,null,0,0,0
+1785567822995,2,Read Broadcast,200,OK,WebSocket clients 1-7,text,true,,262,0,1,1,null,0,0,0
+1785567823085,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-8,,true,,129,201,1,1,null,0,0,1
+1785567823086,0,Send Danmaku,200,OK,WebSocket clients 1-8,,true,,0,54,1,1,null,0,0,0
+1785567823086,0,Read Broadcast,200,OK,WebSocket clients 1-8,text,true,,261,0,1,1,null,0,0,0
+1785567823183,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-9,,true,,129,201,1,1,null,0,0,1
+1785567823185,0,Send Danmaku,200,OK,WebSocket clients 1-9,,true,,0,54,1,1,null,0,0,0
+1785567823185,0,Read Broadcast,200,OK,WebSocket clients 1-9,text,true,,262,0,1,1,null,0,0,0
+1785567823287,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-10,,true,,129,203,1,1,null,0,0,1
+1785567823288,0,Send Danmaku,200,OK,WebSocket clients 1-10,,true,,0,55,1,1,null,0,0,0
+1785567823288,0,Read Broadcast,200,OK,WebSocket clients 1-10,text,true,,264,0,1,1,null,0,0,0
+1785567823387,0,Open WebSocket,101,Switching Protocols,WebSocket clients 1-11,,true,,129,203,1,1,null,0,0,0
+1785567823388,0,Send Danmaku,200,OK,WebSocket clients 1-11,,true,,0,55,1,1,null,0,0,0
+1785567823388,0,Read Broadcast,200,OK,WebSocket clients 1-11,text,true,,265,0,1,1,null,0,0,0
+1785567823488,2,Open WebSocket,101,Switching Protocols,WebSocket clients 1-12,,true,,129,203,1,1,null,0,0,2
+1785567823490,0,Send Danmaku,200,OK,WebSocket clients 1-12,,true,,0,55,1,1,null,0,0,0
+1785567823490,1,Read Broadcast,200,OK,WebSocket clients 1-12,text,true,,265,0,1,1,null,0,0,0
+1785567823589,4,Open WebSocket,101,Switching Protocols,WebSocket clients 1-13,,true,,129,203,1,1,null,0,0,4
+1785567823594,0,Send Danmaku,200,OK,WebSocket clients 1-13,,true,,0,55,1,1,null,0,0,0
+1785567823594,2,Read Broadcast,200,OK,WebSocket clients 1-13,text,true,,265,0,1,1,null,0,0,0
+1785567823687,2,Open WebSocket,101,Switching Protocols,WebSocket clients 1-14,,true,,129,203,1,1,null,0,0,2
+1785567823692,0,Send Danmaku,200,OK,WebSocket clients 1-14,,true,,0,55,1,1,null,0,0,0
+1785567823692,1,Read Broadcast,200,OK,WebSocket clients 1-14,text,true,,265,0,1,1,null,0,0,0
+1785567823785,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-15,,true,,129,203,1,1,null,0,0,1
+1785567823787,0,Send Danmaku,200,OK,WebSocket clients 1-15,,true,,0,55,1,1,null,0,0,0
+1785567823787,1,Read Broadcast,200,OK,WebSocket clients 1-15,text,true,,265,0,1,1,null,0,0,0
+1785567823888,6,Open WebSocket,101,Switching Protocols,WebSocket clients 1-16,,true,,129,203,1,1,null,0,0,6
+1785567823894,0,Send Danmaku,200,OK,WebSocket clients 1-16,,true,,0,55,1,1,null,0,0,0
+1785567823894,1,Read Broadcast,200,OK,WebSocket clients 1-16,text,true,,265,0,1,1,null,0,0,0
+1785567823986,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-17,,true,,129,203,1,1,null,0,0,1
+1785567823987,0,Send Danmaku,200,OK,WebSocket clients 1-17,,true,,0,55,1,1,null,0,0,0
+1785567823988,0,Read Broadcast,200,OK,WebSocket clients 1-17,text,true,,265,0,1,1,null,0,0,0
+1785567824087,3,Open WebSocket,101,Switching Protocols,WebSocket clients 1-18,,true,,129,203,1,1,null,0,0,3
+1785567824092,0,Send Danmaku,200,OK,WebSocket clients 1-18,,true,,0,55,1,1,null,0,0,0
+1785567824093,1,Read Broadcast,200,OK,WebSocket clients 1-18,text,true,,264,0,1,1,null,0,0,0
+1785567824190,4,Open WebSocket,101,Switching Protocols,WebSocket clients 1-19,,true,,129,203,1,1,null,0,0,4
+1785567824195,1,Send Danmaku,200,OK,WebSocket clients 1-19,,true,,0,55,1,1,null,0,0,0
+1785567824197,0,Read Broadcast,200,OK,WebSocket clients 1-19,text,true,,264,0,1,1,null,0,0,0
+1785567824288,4,Open WebSocket,101,Switching Protocols,WebSocket clients 1-20,,true,,129,203,1,1,null,0,0,4
+1785567824293,0,Send Danmaku,200,OK,WebSocket clients 1-20,,true,,0,55,1,1,null,0,0,0
+1785567824295,0,Read Broadcast,200,OK,WebSocket clients 1-20,text,true,,265,0,1,1,null,0,0,0

@@ -353,10 +353,7 @@ func (h *Handler) flushPending(ctx context.Context, session sarama.ConsumerGroup
 		return nil
 	}
 
-	batch := make([]*model.Danmaku, 0, len(pending))
-	for _, item := range pending {
-		batch = append(batch, item.danmaku)
-	}
+	batch := uniqueBatch(pending)
 
 	started := time.Now()
 	for attempt := 1; attempt <= h.maxRetries; attempt++ {
@@ -369,8 +366,8 @@ func (h *Handler) flushPending(ctx context.Context, session sarama.ConsumerGroup
 					session.MarkMessage(item.message, "mysql committed")
 				}
 
-				duplicates := uint64(len(batch)) - uint64(inserted)
-				h.saved.Add(uint64(len(batch)))
+				duplicates := uint64(len(pending)) - uint64(inserted)
+				h.saved.Add(uint64(len(pending)))
 				h.inserted.Add(uint64(inserted))
 				h.duplicates.Add(duplicates)
 				h.batches.Add(1)
@@ -399,6 +396,19 @@ func (h *Handler) flushPending(ctx context.Context, session sarama.ConsumerGroup
 	h.failedBatches.Add(1)
 	h.lastBatchMillis.Store(time.Since(started).Milliseconds())
 	return fmt.Errorf("save batch failed after retries count=%d", len(batch))
+}
+
+func uniqueBatch(pending []pendingMessage) []*model.Danmaku {
+	unique := make([]*model.Danmaku, 0, len(pending))
+	seen := make(map[string]struct{}, len(pending))
+	for _, item := range pending {
+		if _, exists := seen[item.danmaku.MessageID]; exists {
+			continue
+		}
+		seen[item.danmaku.MessageID] = struct{}{}
+		unique = append(unique, item.danmaku)
+	}
+	return unique
 }
 
 func clearPending(pending []pendingMessage) {

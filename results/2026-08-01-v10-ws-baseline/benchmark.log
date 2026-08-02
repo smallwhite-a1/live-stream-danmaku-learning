@@ -1,0 +1,6 @@
+2026/08/01 14:55:26 [benchmark] connected=20 sent/s=21 recv/s=400 total_sent=21 total_recv=400 rate_limited=0 overloaded=0 errors=0
+2026/08/01 14:55:27 [benchmark] connected=20 sent/s=24 recv/s=480 total_sent=45 total_recv=880 rate_limited=0 overloaded=0 errors=0
+2026/08/01 14:55:28 [benchmark] connected=20 sent/s=26 recv/s=520 total_sent=71 total_recv=1400 rate_limited=0 overloaded=0 errors=0
+2026/08/01 14:55:29 [benchmark] connected=20 sent/s=24 recv/s=480 total_sent=95 total_recv=1880 rate_limited=0 overloaded=0 errors=0
+2026/08/01 14:55:30 [benchmark] connected=20 sent/s=26 recv/s=520 total_sent=121 total_recv=2400 rate_limited=0 overloaded=0 errors=0
+2026/08/01 14:55:31 [benchmark] done total_connected=20 sent=146 received=2900 rate_limited=0 overloaded=0 errors=0

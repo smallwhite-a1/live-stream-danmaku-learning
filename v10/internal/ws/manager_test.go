@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charlesAcmen/livestream-danmaku/v10/internal/auth"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/model"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/ratelimit"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/resilience"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type fakeRoomPublisher struct {
@@ -20,9 +22,42 @@ type fakeRoomPublisher struct {
 	err   error
 }
 
+type fakeAuthUserStore struct {
+	user *model.User
+}
+
+func (s fakeAuthUserStore) FindByUsername(context.Context, string) (*model.User, error) {
+	return s.user, nil
+}
+
 func (p *fakeRoomPublisher) Publish(context.Context, string, []byte) error {
 	p.calls++
 	return p.err
+}
+
+func TestServeWSWithAuthRejectsMissingTokenBeforeUpgrade(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	authService, err := auth.New(fakeAuthUserStore{user: &model.User{
+		ID:           "user-1",
+		Username:     "alice",
+		PasswordHash: string(hash),
+		Role:         "viewer",
+		Status:       model.UserStatusActive,
+	}}, auth.Config{Secret: strings.Repeat("s", 32)})
+	if err != nil {
+		t.Fatalf("New auth service: %v", err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/ws?room=room-1", nil)
+	response := httptest.NewRecorder()
+	ServeWSWithAuth(NewManagerWithConfig(ManagerConfig{WorkerCount: 1}), authService, true, response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
 }
 
 type fakePersister struct {

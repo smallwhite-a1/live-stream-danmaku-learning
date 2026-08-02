@@ -1,0 +1,7 @@
+V10 message-level latency benchmark
+
+Command:
+go run ./v10/cmd/benchmark -port=18088 -clients=100 -active=1 -interval=300ms -duration=10s -ramp=5ms -room=latency-room
+
+Result:
+[benchmark] done total_connected=100 sent=3187 received=317703 rate_limited=0 overloaded=0 errors=0 latency_samples=317703 latency_p50=868µs latency_p95=2.958ms latency_p99=4.841ms

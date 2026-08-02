@@ -1,0 +1,33 @@
+2026/08/01 20:59:11 [benchmark] connected=958 sent/s=121 recv/s=82379 total_sent=121 total_recv=82379 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:12 [benchmark] connected=1000 sent/s=318 recv/s=316833 total_sent=439 total_recv=399212 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:13 [benchmark] connected=1000 sent/s=323 recv/s=325000 total_sent=762 total_recv=724212 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:14 [benchmark] connected=1000 sent/s=316 recv/s=306054 total_sent=1078 total_recv=1030266 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:15 [benchmark] connected=1000 sent/s=315 recv/s=324602 total_sent=1393 total_recv=1354868 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:16 [benchmark] connected=1000 sent/s=306 recv/s=306344 total_sent=1699 total_recv=1661212 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:17 [benchmark] connected=1000 sent/s=318 recv/s=315885 total_sent=2017 total_recv=1977097 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:18 [benchmark] connected=1000 sent/s=319 recv/s=315155 total_sent=2336 total_recv=2292252 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:19 [benchmark] connected=1000 sent/s=309 recv/s=312396 total_sent=2645 total_recv=2604648 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:20 [benchmark] connected=1000 sent/s=313 recv/s=315564 total_sent=2958 total_recv=2920212 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:21 [benchmark] connected=1000 sent/s=320 recv/s=319312 total_sent=3278 total_recv=3239524 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:22 [benchmark] connected=1000 sent/s=326 recv/s=322123 total_sent=3604 total_recv=3561647 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:23 [benchmark] connected=1000 sent/s=317 recv/s=317865 total_sent=3921 total_recv=3879512 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:24 [benchmark] connected=1000 sent/s=307 recv/s=309977 total_sent=4228 total_recv=4189489 rate_limited=0 overloaded=0 errors=0
+2026/08/01 20:59:25 [benchmark] done total_connected=1000 sent=4548 received=4508581 rate_limited=0 overloaded=0 errors=0 latency_samples=4508578 latency_p50=4.8ms latency_p95=22.64ms latency_p99=41.55ms
+       15.88 real        31.45 user        13.68 sys
+            70221824  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                4585  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                5644  messages sent
+             2450082  messages received
+                6190  signals received
+                3866  voluntary context switches
+              821542  involuntary context switches
+        375871471120  instructions retired
+        142827009813  cycles elapsed
+            65701120  peak memory footprint

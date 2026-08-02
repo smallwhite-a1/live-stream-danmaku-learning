@@ -1,12 +1,14 @@
 package ws
 
 import (
+	"errors"
 	"log"
 	"net"
 	"net/http"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/charlesAcmen/livestream-danmaku/v10/internal/auth"
 	"github.com/charlesAcmen/livestream-danmaku/v10/internal/model"
 	"github.com/gorilla/websocket"
 )
@@ -18,9 +20,28 @@ var upgrader = websocket.Upgrader{
 }
 
 func ServeWS(manager *Manager, w http.ResponseWriter, r *http.Request) {
+	ServeWSWithAuth(manager, nil, false, w, r)
+}
+
+// ServeWSWithAuth authenticates before upgrading the connection. When auth is
+// optional, legacy uid/name query parameters remain available for local demos;
+// a valid token always takes precedence over spoofable query identity fields.
+func ServeWSWithAuth(manager *Manager, authService *auth.Service, requireAuth bool, w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(r.URL.Query().Get("uid"))
 	username := strings.TrimSpace(r.URL.Query().Get("name"))
 	roomID := strings.TrimSpace(r.URL.Query().Get("room"))
+
+	if authService != nil {
+		claims, err := authService.ClaimsFromRequest(r)
+		switch {
+		case err == nil:
+			userID = claims.UserID
+			username = claims.Username
+		case requireAuth || !errors.Is(err, auth.ErrMissingToken):
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
 
 	if userID == "" || roomID == "" {
 		http.Error(w, "missing uid or room", http.StatusBadRequest)
