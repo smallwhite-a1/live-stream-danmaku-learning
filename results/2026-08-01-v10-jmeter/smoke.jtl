@@ -1,0 +1,61 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1785567664003,591,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-1,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-1,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-1,,false,,0,0,6,6,null,0,0,0
+1785567664099,554,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-2,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-2,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-2,,false,,0,0,6,6,null,0,0,0
+1785567664203,579,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-3,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-3,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-3,,false,,0,0,6,6,null,0,0,0
+1785567664304,571,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-4,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-4,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-4,,false,,0,0,6,6,null,0,0,0
+1785567664404,566,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-5,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-5,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-5,,false,,0,0,6,6,null,0,0,0
+1785567664503,575,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-6,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-6,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-6,,false,,0,0,6,6,null,0,0,0
+1785567664598,560,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-7,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-7,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-7,,false,,0,0,6,6,null,0,0,0
+1785567664700,623,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-8,,false,,0,0,7,7,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-8,,false,,0,0,7,7,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-8,,false,,0,0,7,7,null,0,0,0
+1785567664802,634,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-9,,false,,0,0,7,7,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-9,,false,,0,0,7,7,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-9,,false,,0,0,7,7,null,0,0,0
+1785567664902,648,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-10,,false,,0,0,7,7,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-10,,false,,0,0,7,7,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-10,,false,,0,0,7,7,null,0,0,0
+1785567665002,631,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-11,,false,,0,0,7,7,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-11,,false,,0,0,7,7,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-11,,false,,0,0,7,7,null,0,0,0
+1785567665103,581,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-12,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-12,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-12,,false,,0,0,6,6,null,0,0,0
+1785567665203,582,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-13,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-13,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-13,,false,,0,0,6,6,null,0,0,0
+1785567665302,551,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-14,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-14,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-14,,false,,0,0,6,6,null,0,0,0
+1785567665402,569,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-15,,false,,0,0,6,6,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-15,,false,,0,0,6,6,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-15,,false,,0,0,6,6,null,0,0,0
+1785567665502,603,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-16,,false,,0,0,5,5,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-16,,false,,0,0,5,5,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-16,,false,,0,0,5,5,null,0,0,0
+1785567665603,651,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-17,,false,,0,0,4,4,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-17,,false,,0,0,4,4,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-17,,false,,0,0,4,4,null,0,0,0
+1785567665703,606,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-18,,false,,0,0,3,3,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-18,,false,,0,0,3,3,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-18,,false,,0,0,3,3,null,0,0,0
+1785567665802,638,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-19,,false,,0,0,2,2,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-19,,false,,0,0,2,2,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-19,,false,,0,0,2,2,null,0,0,0
+1785567665904,563,Open WebSocket,Websocket I/O error,WebSocket I/O error: Empty response; connection closed.,WebSocket clients 1-20,,false,,0,0,1,1,null,0,0,0
+0,0,Send Danmaku,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-20,,false,,0,0,1,1,null,0,0,0
+0,0,Read Broadcast,Sampler error,"Sampler configured for using existing connection, but there is no connection",WebSocket clients 1-20,,false,,0,0,1,1,null,0,0,0

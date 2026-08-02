@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"net/url"
 	"os"
@@ -28,10 +29,66 @@ type counters struct {
 	errors         atomic.Int64
 }
 
+const (
+	latencyBucketWidth = 10 * time.Microsecond
+	latencyMax         = 10 * time.Second
+	latencyBucketCount = int(latencyMax/latencyBucketWidth) + 1
+)
+
+type latencyStats struct {
+	count   atomic.Uint64
+	buckets [latencyBucketCount]atomic.Uint64
+}
+
+type latencySummary struct {
+	Count int
+	P50   time.Duration
+	P95   time.Duration
+	P99   time.Duration
+}
+
+func (s *latencyStats) Record(latency time.Duration) {
+	if latency < 0 {
+		return
+	}
+	index := int((latency + latencyBucketWidth - 1) / latencyBucketWidth)
+	if index >= latencyBucketCount {
+		index = latencyBucketCount - 1
+	}
+	s.buckets[index].Add(1)
+	s.count.Add(1)
+}
+
+func (s *latencyStats) Summary() latencySummary {
+	count := s.count.Load()
+	if count == 0 {
+		return latencySummary{}
+	}
+	return latencySummary{
+		Count: int(count),
+		P50:   s.percentile(count, 0.50),
+		P95:   s.percentile(count, 0.95),
+		P99:   s.percentile(count, 0.99),
+	}
+}
+
+func (s *latencyStats) percentile(count uint64, percentile float64) time.Duration {
+	rank := uint64(math.Ceil(float64(count) * percentile))
+	var seen uint64
+	for index := range s.buckets {
+		seen += s.buckets[index].Load()
+		if seen >= rank {
+			return time.Duration(index) * latencyBucketWidth
+		}
+	}
+	return latencyMax
+}
+
 func main() {
 	port := flag.String("port", "8080", "server port")
 	clients := flag.Int("clients", 200, "number of websocket clients")
 	room := flag.String("room", "room1", "room id")
+	token := flag.String("token", "", "JWT access token for all benchmark clients")
 	activeRatio := flag.Float64("active", 0.1, "ratio of clients that send messages")
 	interval := flag.Duration("interval", time.Second, "average send interval for active clients")
 	duration := flag.Duration("duration", 30*time.Second, "benchmark duration")
@@ -44,6 +101,7 @@ func main() {
 	defer cancel()
 
 	var stats counters
+	var latencies latencyStats
 	go report(ctx, &stats)
 
 	host := "127.0.0.1:" + *port
@@ -62,30 +120,38 @@ launchClients:
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			runBot(ctx, host, *room, id, *activeRatio, *interval, &stats)
+			runBot(ctx, host, *room, id, *token, *activeRatio, *interval, &stats, &latencies)
 		}(i)
 	}
 
 	<-ctx.Done()
 	wg.Wait()
 
-	log.Printf("[benchmark] done total_connected=%d sent=%d received=%d rate_limited=%d overloaded=%d errors=%d",
+	latency := latencies.Summary()
+	log.Printf("[benchmark] done total_connected=%d sent=%d received=%d rate_limited=%d overloaded=%d errors=%d latency_samples=%d latency_p50=%s latency_p95=%s latency_p99=%s",
 		stats.totalConnected.Load(),
 		stats.sent.Load(),
 		stats.received.Load(),
 		stats.rateLimited.Load(),
 		stats.overloaded.Load(),
 		stats.errors.Load(),
+		latency.Count,
+		latency.P50,
+		latency.P95,
+		latency.P99,
 	)
 }
 
-func runBot(ctx context.Context, host, room string, id int, activeRatio float64, avgInterval time.Duration, stats *counters) {
+func runBot(ctx context.Context, host, room string, id int, token string, activeRatio float64, avgInterval time.Duration, stats *counters, latencies *latencyStats) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(id)))
 	u := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
 	q := u.Query()
 	q.Set("uid", fmt.Sprintf("bot-%d", id))
 	q.Set("name", fmt.Sprintf("bot-%d", id))
 	q.Set("room", room)
+	if token != "" {
+		q.Set("token", token)
+	}
 	u.RawQuery = q.Encode()
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -101,7 +167,7 @@ func runBot(ctx context.Context, host, room string, id int, activeRatio float64,
 	}()
 
 	done := make(chan struct{})
-	go readLoop(ctx, conn, done, stats)
+	go readLoop(ctx, conn, done, stats, latencies)
 
 	if rng.Float64() >= activeRatio {
 		select {
@@ -132,7 +198,7 @@ func runBot(ctx context.Context, host, room string, id int, activeRatio float64,
 	}
 }
 
-func readLoop(ctx context.Context, conn *websocket.Conn, done chan<- struct{}, stats *counters) {
+func readLoop(ctx context.Context, conn *websocket.Conn, done chan<- struct{}, stats *counters, latencies *latencyStats) {
 	defer close(done)
 
 	for {
@@ -151,6 +217,10 @@ func readLoop(ctx context.Context, conn *websocket.Conn, done chan<- struct{}, s
 		switch packet.Type {
 		case model.TypeDanmaku:
 			stats.received.Add(1)
+			var danmaku model.Danmaku
+			if err := json.Unmarshal(packet.Data, &danmaku); err == nil && danmaku.ClientSentAtUnixNano > 0 {
+				latencies.Record(time.Since(time.Unix(0, danmaku.ClientSentAtUnixNano)))
+			}
 		case model.TypeControl:
 			var control model.ControlData
 			if err := json.Unmarshal(packet.Data, &control); err != nil {
@@ -167,7 +237,10 @@ func readLoop(ctx context.Context, conn *websocket.Conn, done chan<- struct{}, s
 }
 
 func sendDanmaku(conn *websocket.Conn, content string) error {
-	payload, err := json.Marshal(model.Danmaku{Content: content})
+	payload, err := json.Marshal(model.Danmaku{
+		Content:              content,
+		ClientSentAtUnixNano: time.Now().UnixNano(),
+	})
 	if err != nil {
 		return err
 	}

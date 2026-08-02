@@ -17,6 +17,7 @@ import (
 type fakeBatchRepository struct {
 	mu       sync.Mutex
 	events   *[]string
+	batches  [][]string
 	inserted int64
 	err      error
 	calls    int
@@ -48,10 +49,15 @@ func (r *recoveringBatchRepository) CreateIdempotent(context.Context, []*model.D
 	return r.inserted, nil
 }
 
-func (r *fakeBatchRepository) CreateIdempotent(context.Context, []*model.Danmaku) (int64, error) {
+func (r *fakeBatchRepository) CreateIdempotent(_ context.Context, messages []*model.Danmaku) (int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.calls++
+	messageIDs := make([]string, 0, len(messages))
+	for _, message := range messages {
+		messageIDs = append(messageIDs, message.MessageID)
+	}
+	r.batches = append(r.batches, messageIDs)
 	if r.events != nil {
 		*r.events = append(*r.events, "mysql")
 	}
@@ -138,6 +144,33 @@ func TestFlushPendingWritesBeforeMarkingAndCountsDuplicates(t *testing.T) {
 
 	metrics := handler.Metrics()
 	if metrics.Saved != 2 || metrics.Inserted != 1 || metrics.Duplicates != 1 || metrics.Batches != 1 {
+		t.Fatalf("unexpected metrics: %+v", metrics)
+	}
+}
+
+func TestFlushPendingDeduplicatesMessageIDsWithinBatch(t *testing.T) {
+	repository := &fakeBatchRepository{inserted: 2}
+	handler := NewHandler(repository, nil, testConfig())
+	session := &fakeSession{ctx: context.Background()}
+	pending := []pendingMessage{
+		{danmaku: &model.Danmaku{MessageID: "msg-1"}, message: &sarama.ConsumerMessage{Offset: 10}},
+		{danmaku: &model.Danmaku{MessageID: "msg-1"}, message: &sarama.ConsumerMessage{Offset: 11}},
+		{danmaku: &model.Danmaku{MessageID: "msg-2"}, message: &sarama.ConsumerMessage{Offset: 12}},
+	}
+
+	if err := handler.flushPending(context.Background(), session, pending); err != nil {
+		t.Fatalf("flushPending() error = %v", err)
+	}
+
+	wantBatch := []string{"msg-1", "msg-2"}
+	if !reflect.DeepEqual(repository.batches, [][]string{wantBatch}) {
+		t.Fatalf("repository batches = %v, want %v", repository.batches, [][]string{wantBatch})
+	}
+	if len(session.marked) != len(pending) {
+		t.Fatalf("marked messages = %d, want %d", len(session.marked), len(pending))
+	}
+	metrics := handler.Metrics()
+	if metrics.Saved != 3 || metrics.Inserted != 2 || metrics.Duplicates != 1 {
 		t.Fatalf("unexpected metrics: %+v", metrics)
 	}
 }

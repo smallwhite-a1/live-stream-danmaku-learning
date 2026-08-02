@@ -102,12 +102,13 @@ func (c *Client) handleDanmaku(manager *Manager, data []byte) {
 	}
 
 	full := &model.Danmaku{
-		MessageID: manager.NextMessageID(),
-		RoomID:    c.RoomID,
-		UserID:    c.UserID,
-		Username:  c.Username,
-		Content:   content,
-		SendTime:  time.Now(),
+		MessageID:            manager.NextMessageID(),
+		RoomID:               c.RoomID,
+		UserID:               c.UserID,
+		Username:             c.Username,
+		Content:              content,
+		SendTime:             time.Now(),
+		ClientSentAtUnixNano: input.ClientSentAtUnixNano,
 	}
 
 	payload, err := json.Marshal(full)

@@ -37,6 +37,8 @@ type Danmaku struct {
 	Username  string    `gorm:"type:varchar(64);not null" json:"username"`
 	Content   string    `gorm:"type:varchar(500);not null" json:"content"`
 	SendTime  time.Time `gorm:"type:datetime(3);not null;index:idx_v10_room_cursor,priority:2" json:"send_time"`
+	// ClientSentAtUnixNano is benchmark-only telemetry and is never persisted.
+	ClientSentAtUnixNano int64 `gorm:"-" json:"client_sent_at_unix_nano,omitempty"`
 }
 
 func (Danmaku) TableName() string {

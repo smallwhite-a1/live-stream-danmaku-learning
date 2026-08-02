@@ -1,0 +1,37 @@
+2026/08/01 21:01:40 [benchmark] connected=995 sent/s=18 recv/s=13408 total_sent=18 total_recv=13408 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:42 [benchmark] connected=1894 sent/s=83 recv/s=126324 total_sent=101 total_recv=139732 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:43 [benchmark] connected=2476 sent/s=141 recv/s=296542 total_sent=242 total_recv=436274 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:44 [benchmark] connected=2746 sent/s=171 recv/s=276609 total_sent=413 total_recv=712883 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:45 [benchmark] connected=3614 sent/s=198 recv/s=197433 total_sent=611 total_recv=910316 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:45 [benchmark] connected=4701 sent/s=270 recv/s=222904 total_sent=881 total_recv=1133220 rate_limited=0 overloaded=0 errors=0
+2026/08/01 21:01:46 [benchmark] connected=4991 sent/s=322 recv/s=4395 total_sent=1203 total_recv=1137615 rate_limited=0 overloaded=2 errors=0
+2026/08/01 21:01:48 [benchmark] connected=4991 sent/s=323 recv/s=0 total_sent=1526 total_recv=1137615 rate_limited=0 overloaded=78 errors=0
+2026/08/01 21:01:48 [benchmark] connected=4991 sent/s=322 recv/s=0 total_sent=1848 total_recv=1137615 rate_limited=0 overloaded=155 errors=0
+2026/08/01 21:01:49 [benchmark] connected=4991 sent/s=316 recv/s=8810 total_sent=2164 total_recv=1146425 rate_limited=0 overloaded=251 errors=0
+2026/08/01 21:01:51 [benchmark] connected=4991 sent/s=315 recv/s=347 total_sent=2479 total_recv=1146772 rate_limited=0 overloaded=329 errors=0
+2026/08/01 21:01:51 [benchmark] connected=4991 sent/s=315 recv/s=0 total_sent=2794 total_recv=1146772 rate_limited=0 overloaded=414 errors=0
+2026/08/01 21:01:52 [benchmark] connected=4991 sent/s=326 recv/s=0 total_sent=3120 total_recv=1146772 rate_limited=0 overloaded=494 errors=0
+2026/08/01 21:01:53 [benchmark] connected=4991 sent/s=317 recv/s=0 total_sent=3437 total_recv=1146772 rate_limited=0 overloaded=575 errors=0
+2026/08/01 21:01:54 [benchmark] connected=4991 sent/s=332 recv/s=8 total_sent=3769 total_recv=1146780 rate_limited=0 overloaded=661 errors=0
+2026/08/01 21:01:56 [benchmark] connected=4991 sent/s=320 recv/s=0 total_sent=4089 total_recv=1146780 rate_limited=0 overloaded=742 errors=0
+2026/08/01 21:01:56 [benchmark] connected=4991 sent/s=324 recv/s=0 total_sent=4413 total_recv=1146780 rate_limited=0 overloaded=820 errors=0
+2026/08/01 21:01:57 [benchmark] connected=4991 sent/s=326 recv/s=0 total_sent=4739 total_recv=1146780 rate_limited=0 overloaded=904 errors=0
+2026/08/01 21:02:13 [benchmark] done total_connected=4994 sent=4742 received=1146780 rate_limited=0 overloaded=904 errors=6 latency_samples=1146780 latency_p50=101.73ms latency_p95=1.44285s latency_p99=2.2105s
+       33.07 real         8.38 user         3.10 sys
+           209305600  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               13414  page reclaims
+                 260  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                9842  messages sent
+              372218  messages received
+                1560  signals received
+                 360  voluntary context switches
+              241719  involuntary context switches
+         95623706446  instructions retired
+         35383066229  cycles elapsed
+           210306688  peak memory footprint

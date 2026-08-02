@@ -1,0 +1,7 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1785568758489,4,Open WebSocket,101,Switching Protocols,WebSocket clients 1-1,,true,,129,201,1,1,null,0,0,4
+1785568758498,0,Send Danmaku,200,OK,WebSocket clients 1-1,,true,,0,57,1,1,null,0,0,0
+1785568758499,0,Read Broadcast,200,OK,WebSocket clients 1-1,text,true,,264,0,1,1,null,0,0,0
+1785568758990,1,Open WebSocket,101,Switching Protocols,WebSocket clients 1-2,,true,,129,201,1,1,null,0,0,1
+1785568758991,0,Send Danmaku,200,OK,WebSocket clients 1-2,,true,,0,57,1,1,null,0,0,0
+1785568758991,1,Read Broadcast,200,OK,WebSocket clients 1-2,text,true,,265,0,1,1,null,0,0,0
