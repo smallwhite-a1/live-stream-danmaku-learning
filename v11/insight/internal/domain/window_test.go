@@ -40,6 +40,22 @@ func TestRoomInsightRejectsOversizedAlertType(t *testing.T) {
 	}
 }
 
+func TestRoomInsightRejectsMalformedUTF8AlertType(t *testing.T) {
+	start := time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC)
+	insight := RoomInsight{
+		RoomID: "room-1", WindowStart: start, WindowEnd: start.Add(time.Minute),
+		Status: InsightStatusNormal,
+		Semantic: SemanticInsight{
+			Sentiment: Sentiment{Label: "neutral"},
+			Alerts:    []Alert{{Type: string([]byte{0xff}), Severity: "low"}},
+		},
+		Model: ModelMeta{PromptVersion: "v1"}, GeneratedAt: start.Add(2 * time.Minute),
+	}
+	if err := insight.Validate(); err == nil {
+		t.Fatal("Validate() error = nil for malformed UTF-8 alert type")
+	}
+}
+
 func TestNewWindowRefRejectsInvalidInput(t *testing.T) {
 	now := time.Now()
 	for _, tc := range []struct {
@@ -76,8 +92,36 @@ func TestRoomInsightValidateAndIdempotencyKey(t *testing.T) {
 		t.Fatalf("IdempotencyKey() is unstable: %q", got)
 	}
 
-	insight.Status = InsightStatus("unknown")
-	if err := insight.Validate(); err == nil {
-		t.Fatal("Validate() error = nil for unsupported status")
+	for _, tc := range []struct {
+		name      string
+		mutate    func(*RoomInsight)
+		wantError bool
+	}{
+		{name: "normal status", mutate: func(i *RoomInsight) { i.Status = InsightStatusNormal }},
+		{name: "degraded status", mutate: func(i *RoomInsight) { i.Status = InsightStatusDegraded }},
+		{name: "unsupported status", mutate: func(i *RoomInsight) { i.Status = InsightStatus("unknown") }, wantError: true},
+		{name: "blank status", mutate: func(i *RoomInsight) { i.Status = "" }, wantError: true},
+		{name: "positive sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "positive" }},
+		{name: "neutral sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "neutral" }},
+		{name: "negative sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "negative" }},
+		{name: "mixed sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "mixed" }},
+		{name: "unsupported sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "unknown" }, wantError: true},
+		{name: "blank sentiment", mutate: func(i *RoomInsight) { i.Semantic.Sentiment.Label = "" }, wantError: true},
+		{name: "low alert severity", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: "risk", Severity: "low"}} }},
+		{name: "medium alert severity", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: "risk", Severity: "medium"}} }},
+		{name: "high alert severity", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: "risk", Severity: "high"}} }},
+		{name: "unsupported alert severity", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: "risk", Severity: "unknown"}} }, wantError: true},
+		{name: "blank alert severity", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: "risk", Severity: ""}} }, wantError: true},
+		{name: "blank alert type", mutate: func(i *RoomInsight) { i.Semantic.Alerts = []Alert{{Type: " ", Severity: "low"}} }, wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			candidate := insight
+			if tc.mutate != nil {
+				tc.mutate(&candidate)
+			}
+			if err := candidate.Validate(); (err != nil) != tc.wantError {
+				t.Fatalf("Validate() error = %v, wantError %v", err, tc.wantError)
+			}
+		})
 	}
 }

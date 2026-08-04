@@ -30,6 +30,8 @@ func (e MessageEvent) Validate() error {
 		return errors.New("user ID is required")
 	case strings.TrimSpace(e.Content) == "":
 		return errors.New("content is required")
+	case !utf8.ValidString(e.Content):
+		return errors.New("content must be valid UTF-8")
 	case utf8.RuneCountInString(e.Content) > maxContentRunes:
 		return errors.New("content exceeds 500 runes")
 	case e.OccurredAt.IsZero():

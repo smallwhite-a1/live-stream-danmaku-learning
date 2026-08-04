@@ -24,6 +24,7 @@ func TestMessageEventValidate(t *testing.T) {
 		{name: "blank content", mutate: func(e *MessageEvent) { e.Content = "  " }, wantErr: true},
 		{name: "zero occurred at", mutate: func(e *MessageEvent) { e.OccurredAt = time.Time{} }, wantErr: true},
 		{name: "content over 500 runes", mutate: func(e *MessageEvent) { e.Content = strings.Repeat("弹", 501) }, wantErr: true},
+		{name: "malformed UTF-8 content", mutate: func(e *MessageEvent) { e.Content = string([]byte{0xff}) }, wantErr: true},
 	}
 
 	for _, tt := range tests {

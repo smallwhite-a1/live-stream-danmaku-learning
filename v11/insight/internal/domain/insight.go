@@ -106,6 +106,9 @@ func (i RoomInsight) Validate() error {
 		if strings.TrimSpace(alert.Type) == "" {
 			return errors.New("alert type is required")
 		}
+		if !utf8.ValidString(alert.Type) {
+			return errors.New("alert type must be valid UTF-8")
+		}
 		if utf8.RuneCountInString(alert.Type) > maxAlertTypeRunes {
 			return errors.New("alert type exceeds 64 runes")
 		}
