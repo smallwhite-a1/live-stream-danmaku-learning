@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	maxDueWindows    = 32
-	jobQueueCapacity = 32
+	maxDueWindows      = 32
+	defaultJobCapacity = 128
 )
 
 type Config struct {
-	Workers int
+	Workers     int
+	JobCapacity int
 }
 
 type Summary struct {
@@ -45,6 +46,12 @@ func NewProcessor(store ports.WindowStore, primary, fallback ports.InsightAnalyz
 	if config.Workers <= 0 {
 		return nil, errors.New("workers must be positive")
 	}
+	if config.JobCapacity < 0 {
+		return nil, errors.New("job capacity must not be negative")
+	}
+	if config.JobCapacity == 0 {
+		config.JobCapacity = defaultJobCapacity
+	}
 	return &Processor{store: store, primary: primary, fallback: fallback, repository: repository, config: config}, nil
 }
 
@@ -53,7 +60,7 @@ func (p *Processor) ProcessDue(ctx context.Context, now time.Time) (Summary, err
 	if err != nil {
 		return Summary{}, err
 	}
-	jobs := make(chan domain.WindowRef, jobQueueCapacity)
+	jobs := make(chan domain.WindowRef, p.config.JobCapacity)
 	results := make(chan workerResult, len(refs))
 	var workers sync.WaitGroup
 	workers.Add(p.config.Workers)

@@ -122,9 +122,33 @@ func TestProcessDueTreatsDuplicateSaveAsSuccess(t *testing.T) {
 	}
 }
 
-func TestProcessDueUsesFixedCapacityJobQueue(t *testing.T) {
-	if jobQueueCapacity != maxDueWindows {
-		t.Fatalf("job queue capacity = %d, want fixed capacity %d", jobQueueCapacity, maxDueWindows)
+func TestNewProcessorUsesDefaultJobCapacity(t *testing.T) {
+	store, _ := dueStore(t, 1)
+	processor, err := NewProcessor(store, staticAnalyzer{result: analysisResult("primary.v1")}, rule.NewAnalyzer(), repositorymemory.New(), Config{Workers: 1})
+	if err != nil {
+		t.Fatalf("NewProcessor() error = %v", err)
+	}
+	if processor.config.JobCapacity != 128 {
+		t.Fatalf("job capacity = %d, want default 128", processor.config.JobCapacity)
+	}
+}
+
+func TestNewProcessorKeepsPositiveJobCapacity(t *testing.T) {
+	store, _ := dueStore(t, 1)
+	processor, err := NewProcessor(store, staticAnalyzer{result: analysisResult("primary.v1")}, rule.NewAnalyzer(), repositorymemory.New(), Config{Workers: 1, JobCapacity: 7})
+	if err != nil {
+		t.Fatalf("NewProcessor() error = %v", err)
+	}
+	if processor.config.JobCapacity != 7 {
+		t.Fatalf("job capacity = %d, want 7", processor.config.JobCapacity)
+	}
+}
+
+func TestNewProcessorRejectsNegativeJobCapacity(t *testing.T) {
+	store, _ := dueStore(t, 1)
+	_, err := NewProcessor(store, staticAnalyzer{result: analysisResult("primary.v1")}, rule.NewAnalyzer(), repositorymemory.New(), Config{Workers: 1, JobCapacity: -1})
+	if err == nil {
+		t.Fatal("NewProcessor() error = nil, want negative job capacity rejected")
 	}
 }
 
