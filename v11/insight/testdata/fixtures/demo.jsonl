@@ -1,0 +1,9 @@
+{"event_id":"alpha-1200-001","room_id":"room-alpha","user_id":"user-a1","username":"Ada","content":"The card is lagging again","occurred_at":"2020-01-02T12:00:05Z","schema_version":"v1","source":"fixture"}
+{"event_id":"alpha-1200-002","room_id":"room-alpha","user_id":"user-a2","username":"Bo","content":"The card is lagging again","occurred_at":"2020-01-02T12:00:16Z","schema_version":"v1","source":"fixture"}
+{"event_id":"alpha-1200-003","room_id":"room-alpha","user_id":"user-a3","username":"Cy","content":"Great stream, thank you!","occurred_at":"2020-01-02T12:00:32Z","schema_version":"v1","source":"fixture"}
+{"event_id":"alpha-1201-001","room_id":"room-alpha","user_id":"user-a4","username":"Dee","content":"What time does the event start?","occurred_at":"2020-01-02T12:01:08Z","schema_version":"v1","source":"fixture"}
+{"event_id":"alpha-1201-002","room_id":"room-alpha","user_id":"user-a5","username":"Eli","content":"This is awesome!","occurred_at":"2020-01-02T12:01:31Z","schema_version":"v1","source":"fixture"}
+{"event_id":"beta-1200-001","room_id":"room-beta","user_id":"user-b1","username":"Fox","content":"Love the new cards","occurred_at":"2020-01-02T12:00:11Z","schema_version":"v1","source":"fixture"}
+{"event_id":"beta-1200-002","room_id":"room-beta","user_id":"user-b2","username":"Gia","content":"The card is lagging again","occurred_at":"2020-01-02T12:00:42Z","schema_version":"v1","source":"fixture"}
+{"event_id":"beta-1201-001","room_id":"room-beta","user_id":"user-b3","username":"Hal","content":"Can we get an event-time reminder?","occurred_at":"2020-01-02T12:01:14Z","schema_version":"v1","source":"fixture"}
+{"event_id":"beta-1201-002","room_id":"room-beta","user_id":"user-b4","username":"Ian","content":"Really enjoying this!","occurred_at":"2020-01-02T12:01:47Z","schema_version":"v1","source":"fixture"}

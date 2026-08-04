@@ -1,0 +1,116 @@
+package app
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"time"
+
+	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/domain"
+	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/ports"
+)
+
+const (
+	maxDueWindows    = 32
+	jobQueueCapacity = 32
+)
+
+type Config struct {
+	Workers int
+}
+
+type Summary struct {
+	Completed int
+	Degraded  int
+	Failed    int
+}
+
+type Processor struct {
+	store      ports.WindowStore
+	primary    ports.InsightAnalyzer
+	fallback   ports.InsightAnalyzer
+	repository ports.InsightRepository
+	config     Config
+}
+
+func NewProcessor(store ports.WindowStore, primary, fallback ports.InsightAnalyzer, repository ports.InsightRepository, config Config) (*Processor, error) {
+	if store == nil || primary == nil || fallback == nil || repository == nil {
+		return nil, errors.New("processor dependencies are required")
+	}
+	if config.Workers <= 0 {
+		return nil, errors.New("workers must be positive")
+	}
+	return &Processor{store: store, primary: primary, fallback: fallback, repository: repository, config: config}, nil
+}
+
+func (p *Processor) ProcessDue(ctx context.Context, now time.Time) (Summary, error) {
+	refs, err := p.store.ClaimDue(ctx, now, maxDueWindows)
+	if err != nil {
+		return Summary{}, err
+	}
+	jobs := make(chan domain.WindowRef, jobQueueCapacity)
+	results := make(chan Summary, len(refs))
+	var workers sync.WaitGroup
+	workers.Add(p.config.Workers)
+	for range p.config.Workers {
+		go func() {
+			defer workers.Done()
+			for ref := range jobs {
+				results <- p.processWindow(ctx, ref, now)
+			}
+		}()
+	}
+	for _, ref := range refs {
+		jobs <- ref
+	}
+	close(jobs)
+	workers.Wait()
+	close(results)
+
+	var summary Summary
+	for result := range results {
+		summary.Completed += result.Completed
+		summary.Degraded += result.Degraded
+		summary.Failed += result.Failed
+	}
+	return summary, nil
+}
+
+func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now time.Time) Summary {
+	window, err := p.store.Load(ctx, ref)
+	if err != nil {
+		return p.failed(ctx, ref, now)
+	}
+	result, err := p.primary.Analyze(ctx, window)
+	status := domain.InsightStatusNormal
+	reason := ""
+	if err != nil {
+		reason = err.Error()
+		result, err = p.fallback.Analyze(ctx, window)
+		if err != nil {
+			return p.failed(ctx, ref, now)
+		}
+		status = domain.InsightStatusDegraded
+		result.Semantic = domain.SemanticInsight{Sentiment: domain.Sentiment{Label: "neutral"}}
+		result.Model = domain.ModelMeta{Provider: "rule", Model: "rule", PromptVersion: "rule.v1"}
+	}
+	insight := domain.RoomInsight{
+		RoomID: ref.RoomID, WindowStart: ref.Start, WindowEnd: ref.End, Status: status,
+		Rules: result.Rules, Semantic: result.Semantic, Model: result.Model, GeneratedAt: now.UTC(), DegradedReason: reason,
+	}
+	if _, err := p.repository.Save(ctx, insight); err != nil {
+		return p.failed(ctx, ref, now)
+	}
+	if err := p.store.Complete(ctx, ref); err != nil {
+		return p.failed(ctx, ref, now)
+	}
+	if status == domain.InsightStatusDegraded {
+		return Summary{Degraded: 1}
+	}
+	return Summary{Completed: 1}
+}
+
+func (p *Processor) failed(ctx context.Context, ref domain.WindowRef, now time.Time) Summary {
+	_ = p.store.Release(ctx, ref, now)
+	return Summary{Failed: 1}
+}
