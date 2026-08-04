@@ -680,7 +680,7 @@ git commit -m "feat(v11): add standalone insight dashboard"
 - Consumes: complete backend and frontend from Tasks 1-6.
 - Produces: a reproducible minimal-closure report and beginner-focused learning guide.
 
-- [ ] **Step 1: Add Playwright configuration**
+- [x] **Step 1: Add Playwright configuration**
 
 Configure one desktop and one mobile Chromium project. The web server command builds the frontend and runs:
 
@@ -693,17 +693,17 @@ go run ../cmd/insightd
 
 Use `http://127.0.0.1:18121` and reuse no pre-existing server in CI.
 
-- [ ] **Step 2: Write the failing end-to-end test**
+- [x] **Step 2: Write the failing end-to-end test**
 
 Verify the page loads `room-001`, displays a normal insight, shows exact counts, opens evidence for the card-lag topic, switches to `room-002`, and remains usable at a mobile viewport without horizontal overflow.
 
-- [ ] **Step 3: Run and fix only observed integration issues**
+- [x] **Step 3: Run and fix only observed integration issues**
 
 Run: `cd v11/insight/web && npx playwright install chromium && npm run test:e2e`
 
 Expected: desktop and mobile tests pass against the real Go process and JSONL fixture.
 
-- [ ] **Step 4: Run complete backend verification**
+- [x] **Step 4: Run complete backend verification**
 
 Run: `cd v11/insight && go test -count=1 ./...`
 
@@ -713,17 +713,17 @@ Run: `cd v11/insight && go vet ./...`
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Run complete frontend verification**
+- [x] **Step 5: Run complete frontend verification**
 
 Run: `cd v11/insight/web && npm test && npm run lint && npm run build && npm run test:e2e`
 
 Expected: all commands pass.
 
-- [ ] **Step 6: Inspect desktop and mobile screenshots**
+- [x] **Step 6: Inspect desktop and mobile screenshots**
 
 Capture 1440x900 and 390x844 screenshots. Verify nonblank content, no overlap, readable evidence, stable metric cells, and no horizontal overflow. Fix only visual issues demonstrated by screenshots.
 
-- [ ] **Step 7: Write README and measured report**
+- [x] **Step 7: Write README and measured report**
 
 README sections:
 
@@ -740,7 +740,7 @@ how DeepSeek, Kafka, Redis, and MySQL plug in next
 
 The report records exact environment, fixture size, commands, pass counts, processing duration, created/degraded counts, and known limits. Do not claim quality or throughput that was not measured.
 
-- [ ] **Step 8: Mark plan checkboxes from evidence and commit**
+- [x] **Step 8: Mark plan checkboxes from evidence and commit**
 
 Update only completed checkboxes. Keep failed or deferred checks unchecked with an explanation in the report.
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/analyzer/eino"
 	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/analyzer/rule"
 	repositorymemory "github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/repository/memory"
 	windowmemory "github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/window/memory"
@@ -150,6 +151,31 @@ func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
 		if !strings.Contains(string(encoded), requiredCollection) {
 			t.Fatalf("saved fallback semantic JSON = %s, want %s", encoded, requiredCollection)
 		}
+	}
+}
+
+func TestProcessDuePersistsDegradedInsightWhenFakeModelFails(t *testing.T) {
+	store, ref := dueStore(t, 1)
+	repository := repositorymemory.New()
+	primary, err := eino.NewAnalyzer(&eino.FakeModel{Err: errors.New("deterministic fake failure")})
+	if err != nil {
+		t.Fatalf("NewAnalyzer() error = %v", err)
+	}
+	processor := mustProcessor(t, store, primary, rule.NewAnalyzer(), repository, 1)
+
+	summary, err := processor.ProcessDue(context.Background(), dueTime)
+	if err != nil {
+		t.Fatalf("ProcessDue() error = %v", err)
+	}
+	if summary != (Summary{Degraded: 1}) {
+		t.Fatalf("ProcessDue() summary = %+v, want one degraded", summary)
+	}
+	insight, found, err := repository.Latest(context.Background(), ref.RoomID)
+	if err != nil || !found {
+		t.Fatalf("Latest() = (%+v, %v, %v), want saved degraded insight", insight, found, err)
+	}
+	if insight.Status != domain.InsightStatusDegraded || !strings.Contains(insight.DegradedReason, "deterministic fake failure") || insight.Model.Provider != "rule" || insight.Rules.MessageCount != 1 {
+		t.Fatalf("saved insight = %+v, want degraded rule-backed result from fake failure", insight)
 	}
 }
 
