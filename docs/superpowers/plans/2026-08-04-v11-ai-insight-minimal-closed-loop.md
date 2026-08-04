@@ -133,7 +133,87 @@ type InsightWindow struct {
 }
 ```
 
-Add `RuleStats`, `Topic`, `Sentiment`, `Question`, `Alert`, `SemanticInsight`, `ModelMeta`, `AnalysisResult`, and `RoomInsight`. `AnalysisResult` contains `Rules`, `Semantic`, and `Model`; `RoomInsight.Status` supports only `normal` and `degraded`. Add `RoomInsight.IdempotencyKey()` using room, UTC window bounds, and prompt version.
+Add the following exact output contract. Keep the JSON names stable because the HTTP API and the standalone page consume them directly:
+
+```go
+type RuleStats struct {
+    MessageCount         int     `json:"message_count"`
+    UniqueUsers          int     `json:"unique_users"`
+    QuestionCount        int     `json:"question_count"`
+    RepeatedMessageRatio float64 `json:"repeated_message_ratio"`
+    PeakMessagesPerSecond int    `json:"peak_messages_per_second"`
+    TopRepeatedText      string  `json:"top_repeated_text,omitempty"`
+    TopRepeatedCount     int     `json:"top_repeated_count"`
+}
+
+type Topic struct {
+    Name             string   `json:"name"`
+    Confidence       float64  `json:"confidence"`
+    EvidenceEventIDs []string `json:"evidence_event_ids"`
+}
+
+type Sentiment struct {
+    Label            string   `json:"label"`
+    Confidence       float64  `json:"confidence"`
+    EvidenceEventIDs []string `json:"evidence_event_ids"`
+}
+
+type Question struct {
+    Text             string   `json:"text"`
+    EvidenceEventIDs []string `json:"evidence_event_ids"`
+}
+
+type Alert struct {
+    Type             string   `json:"type"`
+    Severity         string   `json:"severity"`
+    Description      string   `json:"description"`
+    EvidenceEventIDs []string `json:"evidence_event_ids"`
+}
+
+type SemanticInsight struct {
+    Summary   string      `json:"summary"`
+    Topics    []Topic     `json:"topics"`
+    Sentiment Sentiment   `json:"sentiment"`
+    Questions []Question  `json:"questions"`
+    Alerts    []Alert     `json:"alerts"`
+}
+
+type ModelMeta struct {
+    Provider      string `json:"provider"`
+    Model         string `json:"model"`
+    PromptVersion string `json:"prompt_version"`
+    InputTokens   int    `json:"input_tokens"`
+    OutputTokens  int    `json:"output_tokens"`
+    LatencyMillis int64  `json:"latency_millis"`
+}
+
+type AnalysisResult struct {
+    Rules    RuleStats       `json:"rules"`
+    Semantic SemanticInsight `json:"semantic"`
+    Model    ModelMeta       `json:"model"`
+}
+
+type InsightStatus string
+
+const (
+    InsightStatusNormal   InsightStatus = "normal"
+    InsightStatusDegraded InsightStatus = "degraded"
+)
+
+type RoomInsight struct {
+    RoomID        string          `json:"room_id"`
+    WindowStart   time.Time       `json:"window_start"`
+    WindowEnd     time.Time       `json:"window_end"`
+    Status        InsightStatus   `json:"status"`
+    Rules         RuleStats       `json:"rules"`
+    Semantic      SemanticInsight `json:"semantic"`
+    Model         ModelMeta       `json:"model"`
+    GeneratedAt   time.Time       `json:"generated_at"`
+    DegradedReason string         `json:"degraded_reason,omitempty"`
+}
+```
+
+`Sentiment.Label` supports `positive`, `neutral`, `negative`, and `mixed`. `Alert.Severity` supports `low`, `medium`, and `high`; alert type remains a bounded non-empty string so rule types can be added without changing the domain contract. `RoomInsight.Status` supports only `normal` and `degraded`. Add `RoomInsight.Validate()` and `RoomInsight.IdempotencyKey()`; the key uses room, UTC window bounds, and prompt version.
 
 - [ ] **Step 6: Define the stable ports**
 
