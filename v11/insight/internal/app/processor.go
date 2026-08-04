@@ -107,7 +107,7 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		status = domain.InsightStatusDegraded
 		result.Semantic = domain.SemanticInsight{
 			Topics:    []domain.Topic{},
-			Sentiment: domain.Sentiment{Label: "neutral"},
+			Sentiment: domain.Sentiment{Label: "neutral", EvidenceEventIDs: []string{}},
 			Questions: []domain.Question{},
 			Alerts:    []domain.Alert{},
 		}

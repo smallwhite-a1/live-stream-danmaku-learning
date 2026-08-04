@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -74,6 +76,18 @@ func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
 	}
 	if insight.Semantic.Alerts == nil || len(insight.Semantic.Alerts) != 0 {
 		t.Fatalf("saved fallback alerts = %#v, want non-nil empty slice", insight.Semantic.Alerts)
+	}
+	if insight.Semantic.Sentiment.EvidenceEventIDs == nil || len(insight.Semantic.Sentiment.EvidenceEventIDs) != 0 {
+		t.Fatalf("saved fallback sentiment evidence = %#v, want non-nil empty slice", insight.Semantic.Sentiment.EvidenceEventIDs)
+	}
+	encoded, err := json.Marshal(insight.Semantic)
+	if err != nil {
+		t.Fatalf("marshal saved fallback semantic = %v", err)
+	}
+	for _, requiredCollection := range []string{`"topics":[]`, `"evidence_event_ids":[]`, `"questions":[]`, `"alerts":[]`} {
+		if !strings.Contains(string(encoded), requiredCollection) {
+			t.Fatalf("saved fallback semantic JSON = %s, want %s", encoded, requiredCollection)
+		}
 	}
 }
 
