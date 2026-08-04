@@ -45,6 +45,20 @@ func TestWithStaticDoesNotSwallowAPIOrHealth(t *testing.T) {
 	}
 }
 
+func TestWithStaticKeepsMalformedAPIRoutesAsJSONNotFound(t *testing.T) {
+	root := t.TempDir()
+	writeWebFile(t, root, "index.html", "<html>app</html>")
+	handler, err := WithStatic(New(repositorymemory.New()), root)
+	if err != nil {
+		t.Fatalf("WithStatic() error = %v", err)
+	}
+
+	for _, requestPath := range []string{"/api", "/api/", "/api/unsupported"} {
+		response := serve(t, handler, http.MethodGet, requestPath)
+		assertJSONError(t, response, http.StatusNotFound)
+	}
+}
+
 func TestWithStaticWithoutWebDirectoryLeavesAPIWorking(t *testing.T) {
 	handler, err := WithStatic(New(repositorymemory.New()), "")
 	if err != nil {
@@ -82,6 +96,39 @@ func TestWithStaticDoesNotServeTraversalOutsideRoot(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || response.Body.String() != "<html>app</html>" {
 		t.Fatalf("traversal response = (%d, %q), want index fallback", response.Code, response.Body.String())
+	}
+}
+
+func TestWithStaticDoesNotServeSymlinksOutsideRoot(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "web")
+	if err := os.Mkdir(root, 0o755); err != nil {
+		t.Fatalf("Mkdir() error = %v", err)
+	}
+	writeWebFile(t, root, "index.html", "<html>app</html>")
+	writeWebFile(t, parent, "secret.txt", "private")
+	if err := os.Symlink(filepath.Join(parent, "secret.txt"), filepath.Join(root, "asset.txt")); err != nil {
+		t.Skipf("cannot create symlink: %v", err)
+	}
+	if err := os.Remove(filepath.Join(root, "index.html")); err != nil {
+		t.Fatalf("Remove() error = %v", err)
+	}
+	if err := os.Symlink(filepath.Join(parent, "secret.txt"), filepath.Join(root, "index.html")); err != nil {
+		t.Skipf("cannot create index symlink: %v", err)
+	}
+
+	handler, err := WithStatic(New(repositorymemory.New()), root)
+	if err != nil {
+		t.Fatalf("WithStatic() error = %v", err)
+	}
+
+	asset := serve(t, handler, http.MethodGet, "/asset.txt")
+	if asset.Code == http.StatusOK && asset.Body.String() == "private" {
+		t.Fatalf("asset symlink served outside root: (%d, %q)", asset.Code, asset.Body.String())
+	}
+	index := serve(t, handler, http.MethodGet, "/missing-route")
+	if index.Code == http.StatusOK && index.Body.String() == "private" {
+		t.Fatalf("index symlink served outside root: (%d, %q)", index.Code, index.Body.String())
 	}
 }
 

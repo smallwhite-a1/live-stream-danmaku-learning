@@ -25,9 +25,8 @@ func WithStatic(api http.Handler, webDir string) (http.Handler, error) {
 		return nil, errors.New("web directory must be a directory")
 	}
 
-	index := filepath.Join(root, "index.html")
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if request.URL.Path == "/health" || strings.HasPrefix(request.URL.Path, "/api/") {
+		if request.URL.Path == "/health" || request.URL.Path == "/api" || strings.HasPrefix(request.URL.Path, "/api/") {
 			api.ServeHTTP(response, request)
 			return
 		}
@@ -39,6 +38,11 @@ func WithStatic(api http.Handler, webDir string) (http.Handler, error) {
 		file, ok := staticFile(root, request.URL.Path)
 		if ok {
 			serveStaticFile(response, request, file)
+			return
+		}
+		index, ok := staticFile(root, "/index.html")
+		if !ok {
+			http.NotFound(response, request)
 			return
 		}
 		serveStaticFile(response, request, index)
@@ -54,15 +58,23 @@ func serveStaticFile(response http.ResponseWriter, request *http.Request, file s
 }
 
 func staticFile(root, requestPath string) (string, bool) {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", false
+	}
 	clean := path.Clean("/" + requestPath)
-	file := filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(clean, "/")))
-	relative, err := filepath.Rel(root, file)
+	file := filepath.Join(resolvedRoot, filepath.FromSlash(strings.TrimPrefix(clean, "/")))
+	resolvedFile, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		return "", false
+	}
+	relative, err := filepath.Rel(resolvedRoot, resolvedFile)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return "", false
 	}
-	info, err := os.Stat(file)
+	info, err := os.Stat(resolvedFile)
 	if err != nil || info.IsDir() {
 		return "", false
 	}
-	return file, true
+	return resolvedFile, true
 }
