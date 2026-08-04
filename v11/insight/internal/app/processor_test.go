@@ -85,6 +85,24 @@ func TestProcessDueReleasesWindowWhenSaveFails(t *testing.T) {
 	}
 }
 
+func TestProcessDueReportsWindowReleaseFailure(t *testing.T) {
+	releaseErr := errors.New("release unavailable")
+	store := &releaseErrorStore{Store: windowmemory.New(windowmemory.Config{WindowSize: time.Minute, Lateness: time.Second, MaxEvents: 10}), err: releaseErr}
+	event := appEvent("event-0", "room-0", dueTime.Add(-2*time.Minute))
+	if _, err := store.Add(context.Background(), event, event.OccurredAt); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+	processor := mustProcessor(t, store, staticAnalyzer{result: analysisResult("primary.v1")}, rule.NewAnalyzer(), failingRepository{}, 1)
+
+	summary, err := processor.ProcessDue(context.Background(), dueTime)
+	if summary != (Summary{Failed: 1}) {
+		t.Fatalf("ProcessDue() summary = %+v, want one failed", summary)
+	}
+	if !errors.Is(err, releaseErr) {
+		t.Fatalf("ProcessDue() error = %v, want wrapping release error", err)
+	}
+}
+
 func TestProcessDueTreatsDuplicateSaveAsSuccess(t *testing.T) {
 	repository := repositorymemory.New()
 	firstStore, _ := dueStore(t, 1)
@@ -207,6 +225,15 @@ func (failingRepository) List(context.Context, string, int) ([]domain.RoomInsigh
 type recordingStore struct {
 	event domain.MessageEvent
 	now   time.Time
+}
+
+type releaseErrorStore struct {
+	*windowmemory.Store
+	err error
+}
+
+func (s *releaseErrorStore) Release(context.Context, domain.WindowRef, time.Time) error {
+	return s.err
 }
 
 func (s *recordingStore) Add(_ context.Context, event domain.MessageEvent, now time.Time) (ports.AddResult, error) {

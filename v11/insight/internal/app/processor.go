@@ -25,6 +25,11 @@ type Summary struct {
 	Failed    int
 }
 
+type workerResult struct {
+	summary Summary
+	err     error
+}
+
 type Processor struct {
 	store      ports.WindowStore
 	primary    ports.InsightAnalyzer
@@ -49,7 +54,7 @@ func (p *Processor) ProcessDue(ctx context.Context, now time.Time) (Summary, err
 		return Summary{}, err
 	}
 	jobs := make(chan domain.WindowRef, jobQueueCapacity)
-	results := make(chan Summary, len(refs))
+	results := make(chan workerResult, len(refs))
 	var workers sync.WaitGroup
 	workers.Add(p.config.Workers)
 	for range p.config.Workers {
@@ -68,15 +73,17 @@ func (p *Processor) ProcessDue(ctx context.Context, now time.Time) (Summary, err
 	close(results)
 
 	var summary Summary
+	var processErr error
 	for result := range results {
-		summary.Completed += result.Completed
-		summary.Degraded += result.Degraded
-		summary.Failed += result.Failed
+		summary.Completed += result.summary.Completed
+		summary.Degraded += result.summary.Degraded
+		summary.Failed += result.summary.Failed
+		processErr = errors.Join(processErr, result.err)
 	}
-	return summary, nil
+	return summary, processErr
 }
 
-func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now time.Time) Summary {
+func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now time.Time) workerResult {
 	window, err := p.store.Load(ctx, ref)
 	if err != nil {
 		return p.failed(ctx, ref, now)
@@ -105,12 +112,11 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		return p.failed(ctx, ref, now)
 	}
 	if status == domain.InsightStatusDegraded {
-		return Summary{Degraded: 1}
+		return workerResult{summary: Summary{Degraded: 1}}
 	}
-	return Summary{Completed: 1}
+	return workerResult{summary: Summary{Completed: 1}}
 }
 
-func (p *Processor) failed(ctx context.Context, ref domain.WindowRef, now time.Time) Summary {
-	_ = p.store.Release(ctx, ref, now)
-	return Summary{Failed: 1}
+func (p *Processor) failed(ctx context.Context, ref domain.WindowRef, now time.Time) workerResult {
+	return workerResult{summary: Summary{Failed: 1}, err: p.store.Release(ctx, ref, now)}
 }
