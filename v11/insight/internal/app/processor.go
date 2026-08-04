@@ -96,6 +96,9 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		return p.failed(ctx, ref, now)
 	}
 	result, err := p.primary.Analyze(ctx, window)
+	if err == nil {
+		err = validatePrimaryEvidence(window, result.Semantic)
+	}
 	status := domain.InsightStatusNormal
 	reason := ""
 	if err != nil {
@@ -128,6 +131,44 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		return workerResult{summary: Summary{Degraded: 1}}
 	}
 	return workerResult{summary: Summary{Completed: 1}}
+}
+
+func validatePrimaryEvidence(window domain.InsightWindow, semantic domain.SemanticInsight) error {
+	allowed := make(map[string]struct{}, len(window.Events))
+	for _, event := range window.Events {
+		allowed[event.EventID] = struct{}{}
+	}
+	if !validEvidenceIDs(semantic.Sentiment.EvidenceEventIDs, allowed) {
+		return errors.New("primary sentiment evidence is invalid")
+	}
+	for _, topic := range semantic.Topics {
+		if !validEvidenceIDs(topic.EvidenceEventIDs, allowed) {
+			return errors.New("primary topic evidence is invalid")
+		}
+	}
+	for _, question := range semantic.Questions {
+		if !validEvidenceIDs(question.EvidenceEventIDs, allowed) {
+			return errors.New("primary question evidence is invalid")
+		}
+	}
+	for _, alert := range semantic.Alerts {
+		if !validEvidenceIDs(alert.EvidenceEventIDs, allowed) {
+			return errors.New("primary alert evidence is invalid")
+		}
+	}
+	return nil
+}
+
+func validEvidenceIDs(ids []string, allowed map[string]struct{}) bool {
+	if len(ids) == 0 {
+		return false
+	}
+	for _, id := range ids {
+		if _, ok := allowed[id]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeSemanticCollections(semantic *domain.SemanticInsight) {

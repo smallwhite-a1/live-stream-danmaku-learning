@@ -96,20 +96,35 @@ func TestFakeModelReturnsValidJSONWithCurrentEventID(t *testing.T) {
 	}
 }
 
-func TestBuildCompletionRequestSortsEventsAndBoundsPrompts(t *testing.T) {
+func TestBuildCompletionRequestSortsEventsAndBoundsCombinedPrompt(t *testing.T) {
 	start := time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC)
 	window := domain.InsightWindow{Events: []domain.MessageEvent{
-		{EventID: "event-c", Username: "c", Content: strings.Repeat("z", 9000), OccurredAt: start.Add(2 * time.Second)},
+		{EventID: "event-c", Username: "c", Content: strings.Repeat("界", 9000), OccurredAt: start.Add(2 * time.Second)},
 		{EventID: "event-b", Username: "b", Content: "second", OccurredAt: start.Add(time.Second)},
 		{EventID: "event-a", Username: "a", Content: "first", OccurredAt: start},
 	}}
 
 	request := buildCompletionRequest(window)
-	if utf8.RuneCountInString(request.SystemPrompt) > maxPromptRunes || utf8.RuneCountInString(request.UserPrompt) > maxPromptRunes {
-		t.Fatalf("prompt exceeds %d runes", maxPromptRunes)
+	if got := utf8.RuneCountInString(request.SystemPrompt) + utf8.RuneCountInString(request.UserPrompt); got != maxPromptRunes {
+		t.Fatalf("combined prompt runes = %d, want %d", got, maxPromptRunes)
 	}
 	if strings.Index(request.UserPrompt, "[event-a]") > strings.Index(request.UserPrompt, "[event-b]") {
 		t.Fatalf("event order = %q, want event-a before event-b", request.UserPrompt)
+	}
+}
+
+func TestBuildCompletionRequestKeepsCompleteShortPrompt(t *testing.T) {
+	request := buildCompletionRequest(testWindow())
+	wantUser := "Selected messages:\n[event-1] alpha: hello\n[event-2] beta: What is next?\n"
+
+	if request.SystemPrompt != systemPrompt {
+		t.Fatalf("SystemPrompt = %q, want complete system prompt", request.SystemPrompt)
+	}
+	if request.UserPrompt != wantUser {
+		t.Fatalf("UserPrompt = %q, want %q", request.UserPrompt, wantUser)
+	}
+	if got := utf8.RuneCountInString(request.SystemPrompt) + utf8.RuneCountInString(request.UserPrompt); got > maxPromptRunes {
+		t.Fatalf("combined prompt runes = %d, want at most %d", got, maxPromptRunes)
 	}
 }
 

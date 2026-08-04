@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/analyzer/eino"
 	"github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/analyzer/rule"
 	repositorymemory "github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/repository/memory"
 	windowmemory "github.com/charlesAcmen/livestream-danmaku/v11/insight/internal/adapters/window/memory"
@@ -53,65 +52,57 @@ func TestProcessDueSavesNormalInsightAndCompletesWindow(t *testing.T) {
 	}
 }
 
-func TestProcessDueNormalizesEmptyNormalSemanticCollectionsBeforeSave(t *testing.T) {
-	store, _ := dueStore(t, 1)
-	repository := &recordingRepository{}
-	processor := mustProcessor(t, store, staticAnalyzer{result: domain.AnalysisResult{
-		Rules:    domain.RuleStats{MessageCount: 1},
-		Model:    domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: "primary.v1"},
-		Semantic: domain.SemanticInsight{Sentiment: domain.Sentiment{Label: "neutral"}},
-	}}, rule.NewAnalyzer(), repository, 1)
+func TestProcessDueDegradesWhenPrimaryReturnsUnknownEvidence(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*domain.SemanticInsight)
+	}{
+		{name: "sentiment", mutate: func(semantic *domain.SemanticInsight) {
+			semantic.Sentiment.EvidenceEventIDs = []string{"unknown-event"}
+		}},
+		{name: "topic", mutate: func(semantic *domain.SemanticInsight) {
+			semantic.Topics[0].EvidenceEventIDs = []string{"unknown-event"}
+		}},
+		{name: "question", mutate: func(semantic *domain.SemanticInsight) {
+			semantic.Questions[0].EvidenceEventIDs = []string{"unknown-event"}
+		}},
+		{name: "alert", mutate: func(semantic *domain.SemanticInsight) {
+			semantic.Alerts[0].EvidenceEventIDs = []string{"unknown-event"}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store, _ := dueStore(t, 1)
+			repository := &recordingRepository{}
+			semantic := primarySemantic()
+			test.mutate(&semantic)
+			processor := mustProcessor(t, store, staticAnalyzer{result: analysisResultWithSemantic(semantic)}, rule.NewAnalyzer(), repository, 1)
 
-	summary, err := processor.ProcessDue(context.Background(), dueTime)
-	if err != nil {
-		t.Fatalf("ProcessDue() error = %v", err)
-	}
-	if summary != (Summary{Completed: 1}) {
-		t.Fatalf("ProcessDue() summary = %+v, want one completed", summary)
-	}
-	insight := repository.insight
-	if insight.Semantic.Topics == nil || len(insight.Semantic.Topics) != 0 {
-		t.Fatalf("saved normal topics = %#v, want non-nil empty slice", insight.Semantic.Topics)
-	}
-	if insight.Semantic.Questions == nil || len(insight.Semantic.Questions) != 0 {
-		t.Fatalf("saved normal questions = %#v, want non-nil empty slice", insight.Semantic.Questions)
-	}
-	if insight.Semantic.Alerts == nil || len(insight.Semantic.Alerts) != 0 {
-		t.Fatalf("saved normal alerts = %#v, want non-nil empty slice", insight.Semantic.Alerts)
-	}
-	if insight.Semantic.Sentiment.EvidenceEventIDs == nil || len(insight.Semantic.Sentiment.EvidenceEventIDs) != 0 {
-		t.Fatalf("saved normal sentiment evidence = %#v, want non-nil empty slice", insight.Semantic.Sentiment.EvidenceEventIDs)
+			assertInvalidPrimaryEvidenceDegrades(t, processor, repository, "unknown-event")
+		})
 	}
 }
 
-func TestProcessDueNormalizesSemanticItemEvidenceIDsBeforeSave(t *testing.T) {
-	store, _ := dueStore(t, 1)
-	repository := &recordingRepository{}
-	processor := mustProcessor(t, store, staticAnalyzer{result: domain.AnalysisResult{
-		Model: domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: "primary.v1"},
-		Semantic: domain.SemanticInsight{
-			Sentiment: domain.Sentiment{Label: "neutral", EvidenceEventIDs: []string{"sentiment-event"}},
-			Topics:    []domain.Topic{{Name: "topic", EvidenceEventIDs: nil}, {Name: "kept", EvidenceEventIDs: []string{"topic-event"}}},
-			Questions: []domain.Question{{Text: "question", EvidenceEventIDs: nil}},
-			Alerts:    []domain.Alert{{Type: "risk", Severity: "low", EvidenceEventIDs: nil}},
-		},
-	}}, rule.NewAnalyzer(), repository, 1)
+func TestProcessDueDegradesWhenPrimaryReturnsEmptyEvidence(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*domain.SemanticInsight)
+	}{
+		{name: "sentiment", mutate: func(semantic *domain.SemanticInsight) { semantic.Sentiment.EvidenceEventIDs = nil }},
+		{name: "topic", mutate: func(semantic *domain.SemanticInsight) { semantic.Topics[0].EvidenceEventIDs = nil }},
+		{name: "question", mutate: func(semantic *domain.SemanticInsight) { semantic.Questions[0].EvidenceEventIDs = nil }},
+		{name: "alert", mutate: func(semantic *domain.SemanticInsight) { semantic.Alerts[0].EvidenceEventIDs = nil }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store, _ := dueStore(t, 1)
+			repository := &recordingRepository{}
+			semantic := primarySemantic()
+			test.mutate(&semantic)
+			processor := mustProcessor(t, store, staticAnalyzer{result: analysisResultWithSemantic(semantic)}, rule.NewAnalyzer(), repository, 1)
 
-	if _, err := processor.ProcessDue(context.Background(), dueTime); err != nil {
-		t.Fatalf("ProcessDue() error = %v", err)
-	}
-	insight := repository.insight
-	if insight.Semantic.Topics[0].EvidenceEventIDs == nil || len(insight.Semantic.Topics[0].EvidenceEventIDs) != 0 {
-		t.Fatalf("saved topic evidence = %#v, want non-nil empty slice", insight.Semantic.Topics[0].EvidenceEventIDs)
-	}
-	if len(insight.Semantic.Topics[1].EvidenceEventIDs) != 1 || insight.Semantic.Topics[1].EvidenceEventIDs[0] != "topic-event" {
-		t.Fatalf("saved populated topic evidence = %#v, want unchanged value", insight.Semantic.Topics[1].EvidenceEventIDs)
-	}
-	if insight.Semantic.Questions[0].EvidenceEventIDs == nil || len(insight.Semantic.Questions[0].EvidenceEventIDs) != 0 {
-		t.Fatalf("saved question evidence = %#v, want non-nil empty slice", insight.Semantic.Questions[0].EvidenceEventIDs)
-	}
-	if insight.Semantic.Alerts[0].EvidenceEventIDs == nil || len(insight.Semantic.Alerts[0].EvidenceEventIDs) != 0 {
-		t.Fatalf("saved alert evidence = %#v, want non-nil empty slice", insight.Semantic.Alerts[0].EvidenceEventIDs)
+			assertInvalidPrimaryEvidenceDegrades(t, processor, repository, "")
+		})
 	}
 }
 
@@ -151,31 +142,6 @@ func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
 		if !strings.Contains(string(encoded), requiredCollection) {
 			t.Fatalf("saved fallback semantic JSON = %s, want %s", encoded, requiredCollection)
 		}
-	}
-}
-
-func TestProcessDuePersistsDegradedInsightWhenFakeModelFails(t *testing.T) {
-	store, ref := dueStore(t, 1)
-	repository := repositorymemory.New()
-	primary, err := eino.NewAnalyzer(&eino.FakeModel{Err: errors.New("deterministic fake failure")})
-	if err != nil {
-		t.Fatalf("NewAnalyzer() error = %v", err)
-	}
-	processor := mustProcessor(t, store, primary, rule.NewAnalyzer(), repository, 1)
-
-	summary, err := processor.ProcessDue(context.Background(), dueTime)
-	if err != nil {
-		t.Fatalf("ProcessDue() error = %v", err)
-	}
-	if summary != (Summary{Degraded: 1}) {
-		t.Fatalf("ProcessDue() summary = %+v, want one degraded", summary)
-	}
-	insight, found, err := repository.Latest(context.Background(), ref.RoomID)
-	if err != nil || !found {
-		t.Fatalf("Latest() = (%+v, %v, %v), want saved degraded insight", insight, found, err)
-	}
-	if insight.Status != domain.InsightStatusDegraded || !strings.Contains(insight.DegradedReason, "deterministic fake failure") || insight.Model.Provider != "rule" || insight.Rules.MessageCount != 1 {
-		t.Fatalf("saved insight = %+v, want degraded rule-backed result from fake failure", insight)
 	}
 }
 
@@ -327,10 +293,46 @@ func appEvent(eventID, roomID string, occurredAt time.Time) domain.MessageEvent 
 }
 
 func analysisResult(promptVersion string) domain.AnalysisResult {
+	result := analysisResultWithSemantic(primarySemantic())
+	result.Model.PromptVersion = promptVersion
+	return result
+}
+
+func analysisResultWithSemantic(semantic domain.SemanticInsight) domain.AnalysisResult {
 	return domain.AnalysisResult{
 		Rules:    domain.RuleStats{MessageCount: 1},
-		Semantic: domain.SemanticInsight{Sentiment: domain.Sentiment{Label: "neutral"}},
-		Model:    domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: promptVersion},
+		Semantic: semantic,
+		Model:    domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: "primary.v1"},
+	}
+}
+
+func primarySemantic() domain.SemanticInsight {
+	return domain.SemanticInsight{
+		Sentiment: domain.Sentiment{Label: "neutral", EvidenceEventIDs: []string{"event-0"}},
+		Topics:    []domain.Topic{{Name: "topic", EvidenceEventIDs: []string{"event-0"}}},
+		Questions: []domain.Question{{Text: "question", EvidenceEventIDs: []string{"event-0"}}},
+		Alerts:    []domain.Alert{{Type: "risk", Severity: "low", EvidenceEventIDs: []string{"event-0"}}},
+	}
+}
+
+func assertInvalidPrimaryEvidenceDegrades(t *testing.T, processor *Processor, repository *recordingRepository, forbiddenEvidence string) {
+	t.Helper()
+	summary, err := processor.ProcessDue(context.Background(), dueTime)
+	if err != nil {
+		t.Fatalf("ProcessDue() error = %v", err)
+	}
+	if summary != (Summary{Degraded: 1}) {
+		t.Fatalf("ProcessDue() summary = %+v, want one degraded", summary)
+	}
+	insight := repository.insight
+	if insight.Status != domain.InsightStatusDegraded || insight.Model.Provider != "rule" {
+		t.Fatalf("saved insight = %+v, want degraded rule-backed result", insight)
+	}
+	if forbiddenEvidence != "" && strings.Contains(fmt.Sprintf("%+v", insight.Semantic), forbiddenEvidence) {
+		t.Fatalf("saved semantic = %+v, must not persist invalid evidence %q", insight.Semantic, forbiddenEvidence)
+	}
+	if len(insight.Semantic.Topics) != 0 || len(insight.Semantic.Questions) != 0 || len(insight.Semantic.Alerts) != 0 || len(insight.Semantic.Sentiment.EvidenceEventIDs) != 0 {
+		t.Fatalf("saved degraded semantic = %+v, want empty degraded default", insight.Semantic)
 	}
 }
 
@@ -412,7 +414,7 @@ type blockingAnalyzer struct {
 	maxActive int
 }
 
-func (a *blockingAnalyzer) Analyze(ctx context.Context, _ domain.InsightWindow) (domain.AnalysisResult, error) {
+func (a *blockingAnalyzer) Analyze(ctx context.Context, window domain.InsightWindow) (domain.AnalysisResult, error) {
 	a.mu.Lock()
 	a.active++
 	if a.active > a.maxActive {
@@ -433,5 +435,18 @@ func (a *blockingAnalyzer) Analyze(ctx context.Context, _ domain.InsightWindow) 
 	case <-ctx.Done():
 		return domain.AnalysisResult{}, ctx.Err()
 	}
-	return a.result, nil
+	result := a.result
+	if len(window.Events) != 0 {
+		result.Semantic = semanticWithEvidence(window.Events[0].EventID)
+	}
+	return result, nil
+}
+
+func semanticWithEvidence(eventID string) domain.SemanticInsight {
+	semantic := primarySemantic()
+	semantic.Sentiment.EvidenceEventIDs = []string{eventID}
+	semantic.Topics[0].EvidenceEventIDs = []string{eventID}
+	semantic.Questions[0].EvidenceEventIDs = []string{eventID}
+	semantic.Alerts[0].EvidenceEventIDs = []string{eventID}
+	return semantic
 }

@@ -565,9 +565,9 @@ Assemble only interfaces, replay JSONL, process due windows, start HTTP, and shu
 
 Run: `cd v11/insight && go run ./cmd/insightd -listen=:18120 -input=./testdata/fixtures/demo.jsonl`
 
-Then request: `curl -s http://127.0.0.1:18120/api/v1/rooms/room-001/insights/latest`
+Then request: `curl -s http://127.0.0.1:18120/api/v1/rooms/room-alpha/insights/latest`
 
-Expected: HTTP 200 containing `status`, `summary`, `topics`, and valid evidence EventIDs.
+Expected: HTTP 200 for the latest `room-alpha` window (`12:01:00Z` to `12:02:00Z`) with message count 2, unique users 2, question count 1, repeated-message ratio 0, peak messages per second 1, and neutral-sentiment evidence `alpha-1201-001`.
 
 - [ ] **Step 8: Run tests and commit**
 
@@ -695,7 +695,7 @@ Use `http://127.0.0.1:18121` and reuse no pre-existing server in CI.
 
 - [x] **Step 2: Write the failing end-to-end test**
 
-Verify the page loads `room-001`, displays a normal insight, shows exact counts, opens evidence for the card-lag topic, switches to `room-002`, and remains usable at a mobile viewport without horizontal overflow.
+Verify the page loads `room-alpha`, displays a normal insight for its latest window, shows the measured latest-window metrics (2 messages, 2 users, 1 question, 0 repeated-message ratio, and 1 message/second peak), opens neutral-sentiment evidence `alpha-1201-001`, switches to `room-beta`, and remains usable at a mobile viewport without horizontal overflow.
 
 - [x] **Step 3: Run and fix only observed integration issues**
 
