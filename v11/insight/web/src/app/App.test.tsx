@@ -13,6 +13,7 @@ const insight = (overrides: Record<string, unknown> = {}) => ({
     question_count: 13,
     repeated_message_ratio: 0.25,
     peak_messages_per_second: 19,
+    top_repeated_count: 0,
   },
   semantic: {
     summary: 'Inventory questions are rising while the room remains constructive.',
@@ -131,5 +132,21 @@ describe('App', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to reach the insight service.')
     expect(screen.getByText('Restock timing')).toBeInTheDocument()
+  })
+
+  it('shows an incomplete-response error for an empty semantic object', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(insight({ semantic: {} }))))
+    render(<App />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The insight response was incomplete.')
+    expect(screen.getByText('No insight is available for this room.')).toBeInTheDocument()
+  })
+
+  it('shows an incomplete-response error for malformed rule fields', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(insight({ rules: { message_count: '128' } }))))
+    render(<App />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The insight response was incomplete.')
+    expect(screen.getByText('No insight is available for this room.')).toBeInTheDocument()
   })
 })

@@ -9,7 +9,7 @@ export interface RuleStats {
   repeated_message_ratio: number
   peak_messages_per_second: number
   top_repeated_text?: string
-  top_repeated_count?: number
+  top_repeated_count: number
 }
 
 export interface EvidenceClaim {
