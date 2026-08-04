@@ -117,6 +117,7 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		RoomID: ref.RoomID, WindowStart: ref.Start, WindowEnd: ref.End, Status: status,
 		Rules: result.Rules, Semantic: result.Semantic, Model: result.Model, GeneratedAt: now.UTC(), DegradedReason: reason,
 	}
+	normalizeSemanticCollections(&insight.Semantic)
 	if _, err := p.repository.Save(ctx, insight); err != nil {
 		return p.failed(ctx, ref, now)
 	}
@@ -127,6 +128,36 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 		return workerResult{summary: Summary{Degraded: 1}}
 	}
 	return workerResult{summary: Summary{Completed: 1}}
+}
+
+func normalizeSemanticCollections(semantic *domain.SemanticInsight) {
+	if semantic.Topics == nil {
+		semantic.Topics = []domain.Topic{}
+	}
+	for i := range semantic.Topics {
+		if semantic.Topics[i].EvidenceEventIDs == nil {
+			semantic.Topics[i].EvidenceEventIDs = []string{}
+		}
+	}
+	if semantic.Sentiment.EvidenceEventIDs == nil {
+		semantic.Sentiment.EvidenceEventIDs = []string{}
+	}
+	if semantic.Questions == nil {
+		semantic.Questions = []domain.Question{}
+	}
+	for i := range semantic.Questions {
+		if semantic.Questions[i].EvidenceEventIDs == nil {
+			semantic.Questions[i].EvidenceEventIDs = []string{}
+		}
+	}
+	if semantic.Alerts == nil {
+		semantic.Alerts = []domain.Alert{}
+	}
+	for i := range semantic.Alerts {
+		if semantic.Alerts[i].EvidenceEventIDs == nil {
+			semantic.Alerts[i].EvidenceEventIDs = []string{}
+		}
+	}
 }
 
 func (p *Processor) failed(ctx context.Context, ref domain.WindowRef, now time.Time) workerResult {

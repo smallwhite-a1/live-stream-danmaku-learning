@@ -52,6 +52,68 @@ func TestProcessDueSavesNormalInsightAndCompletesWindow(t *testing.T) {
 	}
 }
 
+func TestProcessDueNormalizesEmptyNormalSemanticCollectionsBeforeSave(t *testing.T) {
+	store, _ := dueStore(t, 1)
+	repository := &recordingRepository{}
+	processor := mustProcessor(t, store, staticAnalyzer{result: domain.AnalysisResult{
+		Rules:    domain.RuleStats{MessageCount: 1},
+		Model:    domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: "primary.v1"},
+		Semantic: domain.SemanticInsight{Sentiment: domain.Sentiment{Label: "neutral"}},
+	}}, rule.NewAnalyzer(), repository, 1)
+
+	summary, err := processor.ProcessDue(context.Background(), dueTime)
+	if err != nil {
+		t.Fatalf("ProcessDue() error = %v", err)
+	}
+	if summary != (Summary{Completed: 1}) {
+		t.Fatalf("ProcessDue() summary = %+v, want one completed", summary)
+	}
+	insight := repository.insight
+	if insight.Semantic.Topics == nil || len(insight.Semantic.Topics) != 0 {
+		t.Fatalf("saved normal topics = %#v, want non-nil empty slice", insight.Semantic.Topics)
+	}
+	if insight.Semantic.Questions == nil || len(insight.Semantic.Questions) != 0 {
+		t.Fatalf("saved normal questions = %#v, want non-nil empty slice", insight.Semantic.Questions)
+	}
+	if insight.Semantic.Alerts == nil || len(insight.Semantic.Alerts) != 0 {
+		t.Fatalf("saved normal alerts = %#v, want non-nil empty slice", insight.Semantic.Alerts)
+	}
+	if insight.Semantic.Sentiment.EvidenceEventIDs == nil || len(insight.Semantic.Sentiment.EvidenceEventIDs) != 0 {
+		t.Fatalf("saved normal sentiment evidence = %#v, want non-nil empty slice", insight.Semantic.Sentiment.EvidenceEventIDs)
+	}
+}
+
+func TestProcessDueNormalizesSemanticItemEvidenceIDsBeforeSave(t *testing.T) {
+	store, _ := dueStore(t, 1)
+	repository := &recordingRepository{}
+	processor := mustProcessor(t, store, staticAnalyzer{result: domain.AnalysisResult{
+		Model: domain.ModelMeta{Provider: "test", Model: "test", PromptVersion: "primary.v1"},
+		Semantic: domain.SemanticInsight{
+			Sentiment: domain.Sentiment{Label: "neutral", EvidenceEventIDs: []string{"sentiment-event"}},
+			Topics:    []domain.Topic{{Name: "topic", EvidenceEventIDs: nil}, {Name: "kept", EvidenceEventIDs: []string{"topic-event"}}},
+			Questions: []domain.Question{{Text: "question", EvidenceEventIDs: nil}},
+			Alerts:    []domain.Alert{{Type: "risk", Severity: "low", EvidenceEventIDs: nil}},
+		},
+	}}, rule.NewAnalyzer(), repository, 1)
+
+	if _, err := processor.ProcessDue(context.Background(), dueTime); err != nil {
+		t.Fatalf("ProcessDue() error = %v", err)
+	}
+	insight := repository.insight
+	if insight.Semantic.Topics[0].EvidenceEventIDs == nil || len(insight.Semantic.Topics[0].EvidenceEventIDs) != 0 {
+		t.Fatalf("saved topic evidence = %#v, want non-nil empty slice", insight.Semantic.Topics[0].EvidenceEventIDs)
+	}
+	if len(insight.Semantic.Topics[1].EvidenceEventIDs) != 1 || insight.Semantic.Topics[1].EvidenceEventIDs[0] != "topic-event" {
+		t.Fatalf("saved populated topic evidence = %#v, want unchanged value", insight.Semantic.Topics[1].EvidenceEventIDs)
+	}
+	if insight.Semantic.Questions[0].EvidenceEventIDs == nil || len(insight.Semantic.Questions[0].EvidenceEventIDs) != 0 {
+		t.Fatalf("saved question evidence = %#v, want non-nil empty slice", insight.Semantic.Questions[0].EvidenceEventIDs)
+	}
+	if insight.Semantic.Alerts[0].EvidenceEventIDs == nil || len(insight.Semantic.Alerts[0].EvidenceEventIDs) != 0 {
+		t.Fatalf("saved alert evidence = %#v, want non-nil empty slice", insight.Semantic.Alerts[0].EvidenceEventIDs)
+	}
+}
+
 func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
 	store, _ := dueStore(t, 1)
 	repository := &recordingRepository{}
