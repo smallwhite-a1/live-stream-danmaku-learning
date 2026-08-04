@@ -51,8 +51,8 @@ func TestProcessDueSavesNormalInsightAndCompletesWindow(t *testing.T) {
 }
 
 func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
-	store, ref := dueStore(t, 1)
-	repository := repositorymemory.New()
+	store, _ := dueStore(t, 1)
+	repository := &recordingRepository{}
 	processor := mustProcessor(t, store, staticAnalyzer{err: errors.New("model unavailable")}, rule.NewAnalyzer(), repository, 1)
 
 	summary, err := processor.ProcessDue(context.Background(), dueTime)
@@ -62,9 +62,18 @@ func TestProcessDueFallsBackToRulesAndSavesDegradedInsight(t *testing.T) {
 	if summary != (Summary{Degraded: 1}) {
 		t.Fatalf("ProcessDue() summary = %+v, want one degraded", summary)
 	}
-	insight, ok, err := repository.Latest(context.Background(), ref.RoomID)
-	if err != nil || !ok || insight.Status != domain.InsightStatusDegraded || insight.DegradedReason != "model unavailable" || insight.Rules.MessageCount != 1 {
-		t.Fatalf("saved fallback insight = (%+v, %v, %v), want degraded rule result", insight, ok, err)
+	insight := repository.insight
+	if insight.Status != domain.InsightStatusDegraded || insight.DegradedReason != "model unavailable" || insight.Rules.MessageCount != 1 {
+		t.Fatalf("saved fallback insight = %+v, want degraded rule result", insight)
+	}
+	if insight.Semantic.Topics == nil || len(insight.Semantic.Topics) != 0 {
+		t.Fatalf("saved fallback topics = %#v, want non-nil empty slice", insight.Semantic.Topics)
+	}
+	if insight.Semantic.Questions == nil || len(insight.Semantic.Questions) != 0 {
+		t.Fatalf("saved fallback questions = %#v, want non-nil empty slice", insight.Semantic.Questions)
+	}
+	if insight.Semantic.Alerts == nil || len(insight.Semantic.Alerts) != 0 {
+		t.Fatalf("saved fallback alerts = %#v, want non-nil empty slice", insight.Semantic.Alerts)
 	}
 }
 
@@ -243,6 +252,23 @@ func (failingRepository) Latest(context.Context, string) (domain.RoomInsight, bo
 }
 
 func (failingRepository) List(context.Context, string, int) ([]domain.RoomInsight, error) {
+	return nil, nil
+}
+
+type recordingRepository struct {
+	insight domain.RoomInsight
+}
+
+func (r *recordingRepository) Save(_ context.Context, insight domain.RoomInsight) (bool, error) {
+	r.insight = insight
+	return true, nil
+}
+
+func (*recordingRepository) Latest(context.Context, string) (domain.RoomInsight, bool, error) {
+	return domain.RoomInsight{}, false, nil
+}
+
+func (*recordingRepository) List(context.Context, string, int) ([]domain.RoomInsight, error) {
 	return nil, nil
 }
 

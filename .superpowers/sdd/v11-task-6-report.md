@@ -45,3 +45,17 @@
 ## Follow-up Concerns
 
 - The validator intentionally checks JSON shapes and enum values, but does not enforce semantic ranges such as confidence between 0 and 1; the frontend only needs the documented primitive/array/object contract to remain render-safe.
+
+## V11 Degraded Insight Contract Fix
+
+- Updated degraded `SemanticInsight` construction to use non-nil empty `topics`, `questions`, and `alerts` slices with neutral sentiment, preserving the stable JSON array contract.
+- Added a save-boundary regression test that verifies the exact insight passed to persistence; the test was red before the backend change and green afterward.
+
+## Contract Fix Verification
+
+- `cd v11/insight && gofmt -w internal/app`: passed.
+- `go test -race ./internal/app -count=1`: passed.
+- `go test ./... -count=1`: passed.
+- `cd v11/insight/web && npm test`: passed, 1 test file and 10 tests.
+- `npm run build`: passed.
+- `npm run lint`: passed.

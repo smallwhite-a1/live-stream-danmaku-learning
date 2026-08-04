@@ -105,7 +105,12 @@ func (p *Processor) processWindow(ctx context.Context, ref domain.WindowRef, now
 			return p.failed(ctx, ref, now)
 		}
 		status = domain.InsightStatusDegraded
-		result.Semantic = domain.SemanticInsight{Sentiment: domain.Sentiment{Label: "neutral"}}
+		result.Semantic = domain.SemanticInsight{
+			Topics:    []domain.Topic{},
+			Sentiment: domain.Sentiment{Label: "neutral"},
+			Questions: []domain.Question{},
+			Alerts:    []domain.Alert{},
+		}
 		result.Model = domain.ModelMeta{Provider: "rule", Model: "rule", PromptVersion: "rule.v1"}
 	}
 	insight := domain.RoomInsight{
