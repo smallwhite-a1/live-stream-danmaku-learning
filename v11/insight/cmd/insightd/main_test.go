@@ -43,6 +43,14 @@ func TestRunRejectsNegativeJobCapacityAndUnsupportedModel(t *testing.T) {
 	}
 }
 
+func TestRunRejectsDeepSeekWithoutEnvironmentKey(t *testing.T) {
+	t.Setenv("DEEPSEEK_API_KEY", "")
+	err := run(context.Background(), []string{"-model=deepseek"}, io.Discard, io.Discard)
+	if err == nil || !strings.Contains(err.Error(), "API key") {
+		t.Fatalf("run(deepseek) error = %v, want missing API key", err)
+	}
+}
+
 func TestRunServesReplayedFixtureUntilContextCancellation(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

@@ -43,7 +43,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	lateness := flags.Duration("lateness", 10*time.Second, "allowed event lateness")
 	workers := flags.Int("workers", 2, "fixed processor worker count")
 	jobCapacity := flags.Int("job-capacity", 128, "processor job queue capacity")
-	model := flags.String("model", "fake", "analysis model")
+	model := flags.String("model", "fake", "analysis model: fake or deepseek")
+	modelConcurrency := flags.Int("model-concurrency", 16, "maximum concurrent model calls")
+	modelTimeout := flags.Duration("model-timeout", 15*time.Second, "single model call timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -59,8 +61,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if *jobCapacity < 0 {
 		return errors.New("job capacity must not be negative")
 	}
-	if *model != "fake" {
-		return fmt.Errorf("unsupported model %q", *model)
+	if *modelConcurrency <= 0 || *modelTimeout <= 0 {
+		return errors.New("model concurrency and timeout must be positive")
+	}
+	primary, err := createPrimary(*model, *modelConcurrency, *modelTimeout)
+	if err != nil {
+		return err
 	}
 
 	input, err := os.Open(*inputPath)
@@ -71,10 +77,6 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 
 	store := windowmemory.New(windowmemory.Config{WindowSize: *windowSize, Lateness: *lateness})
 	repository := repositorymemory.New()
-	primary, err := eino.NewAnalyzer(&eino.FakeModel{})
-	if err != nil {
-		return fmt.Errorf("create fake analyzer: %w", err)
-	}
 	processor, err := app.NewProcessor(store, primary, rule.NewAnalyzer(), repository, app.Config{Workers: *workers, JobCapacity: *jobCapacity})
 	if err != nil {
 		return fmt.Errorf("create processor: %w", err)
@@ -99,6 +101,31 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 
 	_ = stdout
 	return serve(ctx, &http.Server{Handler: handler}, listener)
+}
+
+func createPrimary(name string, concurrency int, timeout time.Duration) (*eino.Analyzer, error) {
+	var model eino.CompletionModel
+	switch name {
+	case "fake":
+		model = &eino.FakeModel{}
+	case "deepseek":
+		provider, err := eino.NewDeepSeekModel(eino.DeepSeekConfig{APIKey: os.Getenv("DEEPSEEK_API_KEY"), Model: os.Getenv("DEEPSEEK_MODEL")})
+		if err != nil {
+			return nil, fmt.Errorf("create DeepSeek model: %w", err)
+		}
+		model = provider
+	default:
+		return nil, fmt.Errorf("unsupported model %q", name)
+	}
+	guarded, err := eino.NewGuardedModel(model, eino.GuardConfig{MaxInFlight: concurrency, Timeout: timeout, FailureThreshold: 5, OpenFor: 30 * time.Second})
+	if err != nil {
+		return nil, fmt.Errorf("configure model guard: %w", err)
+	}
+	analyzer, err := eino.NewAnalyzer(guarded)
+	if err != nil {
+		return nil, fmt.Errorf("create %s analyzer: %w", name, err)
+	}
+	return analyzer, nil
 }
 
 func serve(ctx context.Context, server *http.Server, listener net.Listener) error {
