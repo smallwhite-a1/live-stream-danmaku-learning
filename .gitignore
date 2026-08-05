@@ -28,6 +28,8 @@
 .env
 .env.local
 config.yaml
+data/raw/
+data/processed/
 # 注意：如果你把 config.yaml 当模板用，可以提交一个 config.example.yaml
 
 # --- 操作系统垃圾 ---
