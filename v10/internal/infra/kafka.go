@@ -32,11 +32,13 @@ func ParseBrokers(raw string) []string {
 
 func InitKafkaProducer(brokers []string) (sarama.AsyncProducer, error) {
 	config := newReliableProducerConfig()
-	config.ChannelBufferSize = 4096
-	config.Producer.Flush.Messages = 50
-	config.Producer.Flush.MaxMessages = 200
-	config.Producer.Flush.Bytes = 8 * 1024
-	config.Producer.Flush.Frequency = 50 * time.Millisecond
+	// Keep the WebSocket/Redis path non-blocking while absorbing short Kafka bursts.
+	// The bounded queue intentionally still drops under sustained overload.
+	config.ChannelBufferSize = 32768
+	config.Producer.Flush.Messages = 200
+	config.Producer.Flush.MaxMessages = 500
+	config.Producer.Flush.Bytes = 64 * 1024
+	config.Producer.Flush.Frequency = 20 * time.Millisecond
 
 	return sarama.NewAsyncProducer(brokers, config)
 }
